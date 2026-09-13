@@ -1,0 +1,20 @@
+* text=auto eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.svg text eol=lf
+*.desktop.in text eol=lf
+*.json text eol=lf
+
+# Keep local development material out of source archives as well as Git.
+AGENTS.md export-ignore
+AGENTS.local.md export-ignore
+CLAUDE.md export-ignore
+GEMINI.md export-ignore
+.grok export-ignore
+.codex export-ignore
+.claude export-ignore
+.cursor export-ignore
+.agents export-ignore
+docs/history export-ignore
+verification export-ignore

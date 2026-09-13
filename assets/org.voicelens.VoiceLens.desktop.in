@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=VoiceLens
+Comment=Turn speech into text locally
+Comment[de]=Sprache lokal in Text verwandeln
+Exec=@PROJECT_DIR@/run.sh
+Icon=@PROJECT_DIR@/assets/voicelens.svg
+Terminal=false
+Categories=AudioVideo;Audio;
+Keywords=VoiceLens;Diktat;Mikrofon;Transkription;Whisper;Sprache;
+StartupNotify=true
+StartupWMClass=org.voicelens.VoiceLens
+DBusActivatable=false

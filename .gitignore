@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+.env.*
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Local agent instructions and development history
+AGENTS.md
+AGENTS.local.md
+CLAUDE.md
+GEMINI.md
+.grok/
+.codex/
+.claude/
+.cursor/
+.agents/
+/docs/history/
+
+# Local credentials and diagnostic files
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Local verification dumps and recorded audio
+/verification/
+*.wav
+
+# Local speech assets must never enter the source repository
+/models/
+/wheelhouse/
+*.bin
+*.pt
+*.gguf
+*.ggml
+*.safetensors
+*.onnx
+*.mp3
+*.flac
+*.ogg
+*.m4a

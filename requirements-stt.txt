@@ -1,0 +1,2 @@
+# Install only in a dedicated VoiceLens environment; never in system Python.
+faster-whisper==1.2.1

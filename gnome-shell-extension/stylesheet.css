@@ -1,0 +1,12 @@
+.voicelens-orb-bin { background-color: transparent; }
+.voicelens-orb-core { width: 228px; height: 228px; background-color: transparent; }
+.voicelens-phase-label {
+    color: #dbf9f1;
+    background-color: rgba(13, 24, 31, 0.94);
+    border: 1px solid rgba(132, 229, 208, 0.26);
+    border-radius: 12px;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    text-align: center;
+}

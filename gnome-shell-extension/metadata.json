@@ -1,0 +1,8 @@
+{
+  "uuid": "voicelens-ptt@org.voicelens.VoiceLens",
+  "name": "VoiceLens Push-to-Talk",
+  "description": "Hold Control to dictate into the focused window while VoiceLens runs in the background. Shortcuts such as Ctrl+C are left alone.",
+  "shell-version": ["46"],
+  "version": 8,
+  "session-modes": ["user"]
+}

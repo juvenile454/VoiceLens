@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible VoiceLens problem.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Please do not upload private recordings, transcripts, credentials or diagnostic output containing personal paths."
+  - type: input
+    id: platform
+    attributes:
+      label: Linux distribution and version
+      placeholder: Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: desktop
+    attributes:
+      label: Desktop, version and session type
+      placeholder: GNOME 46, Wayland
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps, expected result and actual result
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Setup summary
+      description: "Run install.py --check and summarize failed checks. Include model ID, runtime version and microphone type. Remove personal paths and device identifiers."
+  - type: input
+    id: revision
+    attributes:
+      label: VoiceLens commit or release

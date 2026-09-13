@@ -1,0 +1,36 @@
+.voicelens-window, .voicelens-settings { background: #10171e; color: #e6f1f3; }
+.voicelens-window headerbar, .voicelens-settings headerbar {
+    background: #10171e; color: #e6f1f3; border-bottom: 1px solid #25323c; box-shadow: none;
+}
+.voicelens-window headerbar .subtitle { color: #8ea6b3; font-size: 11px; }
+.voicelens-window .eyebrow { color: #83ddca; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; }
+.voicelens-window .hero-title { font-size: 27px; font-weight: 700; letter-spacing: -0.8px; color: #f0f7f7; }
+.voicelens-window .hero-hint { color: #a1b4bf; font-size: 12px; }
+.voicelens-window .phase-title { color: #d9f9f0; font-size: 13px; font-weight: 600; }
+.voicelens-window .card { background: #18222b; border: 1px solid #2b3a45; border-radius: 16px; }
+.voicelens-window .caption { color: #9db3bf; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.voicelens-window button, .voicelens-settings button {
+    background: #24323d; color: #e1eef1; border: 1px solid #354955;
+    border-radius: 9px; box-shadow: none; text-shadow: none; padding: 8px 12px;
+}
+.voicelens-window button:hover, .voicelens-settings button:hover { background: #30434e; border-color: #608477; }
+.voicelens-window button:disabled, .voicelens-settings button:disabled { color: #708591; background: #1a252e; border-color: #2a3943; }
+.voicelens-window button:focus, .voicelens-settings button:focus { outline: 2px solid #86e6d0; outline-offset: 2px; }
+.voicelens-window button.suggested-action { background: #9ae7d3; color: #112a29; border-color: #9ae7d3; font-weight: 700; }
+.voicelens-window button.suggested-action:hover { background: #b4f5e3; }
+.voicelens-window button.destructive-action { background: #eec6bd; border-color: #eec6bd; color: #3c252a; font-weight: 700; }
+.voicelens-window .settings-summary { background: transparent; border-color: transparent; color: #a3bbc6; font-size: 11px; padding: 4px; }
+.voicelens-window .timer { font-family: monospace; font-size: 20px; color: #d9e8ec; }
+.voicelens-window .status-detail { color: #a3bbc6; font-size: 12px; }
+.voicelens-window .transcript, .voicelens-window .transcript text { background: #18222b; color: #e6f1f3; font-size: 15px; caret-color: #9ae7d3; }
+.voicelens-window .transcript text selection { background: #35665f; color: #ffffff; }
+.voicelens-window .placeholder { color: #869fab; font-size: 14px; }
+.voicelens-window .privacy { color: #a3c5bd; font-size: 11px; }
+.voicelens-window .dim-label, .voicelens-settings .dim-label { color: #9bb2bd; opacity: 1; font-size: 11px; }
+.voicelens-window spinner { color: #9ae7d3; }
+.voicelens-settings list, .voicelens-settings row { background: #18222b; color: #e6f1f3; }
+.voicelens-settings row { border-bottom: 1px solid #293a45; padding: 4px; }
+.voicelens-settings row:selected { background: #28483f; }
+.voicelens-settings .heading { color: #91e3cd; font-size: 13px; font-weight: 700; }
+.voicelens-settings check, .voicelens-settings radio { background: #293d46; border-color: #728e98; }
+.voicelens-settings check:checked, .voicelens-settings radio:checked { background: #9ae7d3; color: #16332c; }
