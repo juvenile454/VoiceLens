@@ -18,7 +18,7 @@ env -u WAYLAND_DISPLAY GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 -m unittest 
 | `test_setup.py` | Einrichtungsdiagnose, SVG-Loader und defekte Assets, fehlende Komponenten, Installer ohne Schreibtisch, Cache-Umgebung | GTK-Asset-Lader echt; Datei-/API-Doubles, keine Aufnahme |
 | `test_hotkey.py` | Halten/Akkord-State-Machine, Terminalrolle, Paste-Optionen, alte Helper/Timeouts | nein (AT-SPI/D-Bus-Doubles) |
 | `test_shell_ext.py` | Dateien kopieren unter `XDG_DATA_HOME`; gemeinsame App-/Launcher-/D-Bus-Identität | nein (temp dir; aktiviert die Session-Erweiterung nicht) |
-| `test_ui.py` | GTK-Buttons/Signale, Start ohne Icon/CSS, Einrichtungshinweise bei mehreren Fehlern | xvfb, kein Mikrofon |
+| `test_ui.py` | GTK-Buttons/Signale, Start ohne Icon/CSS, Einrichtungshinweise bei mehreren Fehlern, Anhängen/Auto-Kopieren, Leeren, Escape, Strg+Umschalt+C, Einstellungsschalter, Menüdialoge | xvfb, kein Mikrofon |
 | `test_overlay.py` | GJS/Cairo, native/IBus-Cursor-Geometrie, Label-Fade, Terminal-Paste, Animation/Abbruch, Signal-/Timer-Cleanup | Cairo echt; Shell, IBus, Tastatur, Uhr und D-Bus sind Doubles |
 
 Dateiköpfe markieren Doubles ausdrücklich. `discover` sieht nur `test_*.py`.
@@ -31,7 +31,7 @@ gjs -m tests/preview_overlay.js verification/ui/frames
 ffmpeg -v error -y -framerate 20 -i verification/ui/frames/%03d.png -filter_complex "[0:v]split[a][b];[a]palettegen[p];[b][p]paletteuse" -loop 0 verification/ui/cursor-flow.gif
 ```
 
-Rendert GTK-Ansichten in beiden Sprachen sowie eine Szene mit dem Original-Overlay-Renderer und synthetischen Pegeln. Startet keine Aufnahme und installiert keine Erweiterung. Das ersetzt keinen Live-Test des GNOME-Overlays in einer fremden Anwendung.
+Rendert GTK-Ansichten in beiden Sprachen (Leerlauf, Aufnahme, Transkription, Ergebnis, beide Einstellungsseiten, Einrichtungshilfe, Tastenkürzel) sowie eine Szene mit dem Original-Overlay-Renderer und synthetischen Pegeln. Die Modellverfügbarkeit ist dabei ein Double, damit der Bereit-Zustand sichtbar ist. Startet keine Aufnahme und installiert keine Erweiterung. Das ersetzt keinen Live-Test des GNOME-Overlays in einer fremden Anwendung.
 
 ## Einrichtungsdiagnose (nur lesend)
 

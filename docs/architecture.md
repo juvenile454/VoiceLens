@@ -9,7 +9,7 @@ Start: `run.sh` → `/usr/bin/python3 -m voicelens` (`voicelens/__main__.py`). O
 | Pfad | Rolle |
 |---|---|
 | `voicelens/__main__.py` | CLI vs. GUI; startet nie implizit eine Aufnahme |
-| `voicelens/ui.py` | GTK3-Fenster, Single-Instance `org.voicelens.VoiceLens`, Settings-Dialog |
+| `voicelens/ui.py` | GTK3-Fenster, Single-Instance `org.voicelens.VoiceLens`, Settings-Dialog (Seiten Allgemein/Modell), Tastenkürzel-Dialog, Kopfzeilenmenü |
 | `voicelens/visualizer.py`, `assets/ui.css` | Native Lichtlinse, gemeinsame Gestaltung von Hauptfenster und Einstellungen; statisch im Leerlauf |
 | `voicelens/controller.py` | Eine Hintergrundoperation; Events in eine Queue, GTK liest sie |
 | `voicelens/backend.py` | Mikrofone (`pactl`), ffmpeg-Aufnahme in memfd, Spawn von Guard+Worker |

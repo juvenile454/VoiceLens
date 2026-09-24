@@ -1,36 +1,165 @@
-.voicelens-window, .voicelens-settings { background: #10171e; color: #e6f1f3; }
+/* VoiceLens stylesheet. Colors: deep teal surfaces, mint accent, coral for recording,
+   violet for busy phases, amber for warnings. GTK 3 CSS; no external assets. */
+
+/* ---- Surfaces ---------------------------------------------------------- */
+.voicelens-window, .voicelens-settings { background: #0e151b; color: #e6f1f3; }
 .voicelens-window headerbar, .voicelens-settings headerbar {
-    background: #10171e; color: #e6f1f3; border-bottom: 1px solid #25323c; box-shadow: none;
+    background: #0e151b; color: #e6f1f3; border-bottom: 1px solid #22303a; box-shadow: none;
+    min-height: 44px;
 }
+.voicelens-window headerbar .title { font-weight: 700; letter-spacing: 0.2px; }
 .voicelens-window headerbar .subtitle { color: #8ea6b3; font-size: 11px; }
-.voicelens-window .eyebrow { color: #83ddca; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; }
+.voicelens-window headerbar button.titlebutton, .voicelens-settings headerbar button.titlebutton {
+    background: transparent; border-color: transparent; box-shadow: none; padding: 4px; margin: 0 2px;
+    color: #b7c9d1; border-radius: 999px;
+}
+.voicelens-window headerbar button.titlebutton:hover, .voicelens-settings headerbar button.titlebutton:hover {
+    background: #22303a; border-color: transparent; color: #f0f7f7;
+}
+.voicelens-window headerbar button.header-icon {
+    background: transparent; border-color: transparent; color: #b7c9d1; padding: 6px; border-radius: 999px;
+}
+.voicelens-window headerbar button.header-icon:hover,
+.voicelens-window headerbar button.header-icon:checked { background: #22303a; color: #f0f7f7; }
+
+.voicelens-window .card {
+    background: #16202a; border: 1px solid #263540; border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+/* ---- Hero -------------------------------------------------------------- */
+.voicelens-window .eyebrow { color: #83ddca; font-size: 10px; font-weight: 700; letter-spacing: 1.6px; }
 .voicelens-window .hero-title { font-size: 27px; font-weight: 700; letter-spacing: -0.8px; color: #f0f7f7; }
 .voicelens-window .hero-hint { color: #a1b4bf; font-size: 12px; }
-.voicelens-window .phase-title { color: #d9f9f0; font-size: 13px; font-weight: 600; }
-.voicelens-window .card { background: #18222b; border: 1px solid #2b3a45; border-radius: 16px; }
-.voicelens-window .caption { color: #9db3bf; font-size: 10px; font-weight: 700; letter-spacing: 1px; }
-.voicelens-window button, .voicelens-settings button {
-    background: #24323d; color: #e1eef1; border: 1px solid #354955;
-    border-radius: 9px; box-shadow: none; text-shadow: none; padding: 8px 12px;
-}
-.voicelens-window button:hover, .voicelens-settings button:hover { background: #30434e; border-color: #608477; }
-.voicelens-window button:disabled, .voicelens-settings button:disabled { color: #708591; background: #1a252e; border-color: #2a3943; }
-.voicelens-window button:focus, .voicelens-settings button:focus { outline: 2px solid #86e6d0; outline-offset: 2px; }
-.voicelens-window button.suggested-action { background: #9ae7d3; color: #112a29; border-color: #9ae7d3; font-weight: 700; }
-.voicelens-window button.suggested-action:hover { background: #b4f5e3; }
-.voicelens-window button.destructive-action { background: #eec6bd; border-color: #eec6bd; color: #3c252a; font-weight: 700; }
-.voicelens-window .settings-summary { background: transparent; border-color: transparent; color: #a3bbc6; font-size: 11px; padding: 4px; }
-.voicelens-window .timer { font-family: monospace; font-size: 20px; color: #d9e8ec; }
-.voicelens-window .status-detail { color: #a3bbc6; font-size: 12px; }
-.voicelens-window .transcript, .voicelens-window .transcript text { background: #18222b; color: #e6f1f3; font-size: 15px; caret-color: #9ae7d3; }
-.voicelens-window .transcript text selection { background: #35665f; color: #ffffff; }
-.voicelens-window .placeholder { color: #869fab; font-size: 14px; }
+.voicelens-window .phase-title { font-size: 13px; font-weight: 600; color: #d9f9f0; }
+.voicelens-window .phase-dot, .voicelens-window .status-dot { font-size: 9px; color: #6f8d99; }
+.voicelens-window .status-dot { margin-top: 3px; }
+
+/* ---- State tones (dots, phase title) ----------------------------------- */
+.voicelens-window .tone-ready { color: #86e6d0; }
+.voicelens-window .tone-recording { color: #ff9c8a; }
+.voicelens-window .tone-busy { color: #b7aef7; }
+.voicelens-window .tone-warn { color: #f2c66d; }
+.voicelens-window .phase-title.tone-ready { color: #d9f9f0; }
+.voicelens-window .phase-title.tone-recording { color: #ffd2c8; }
+.voicelens-window .phase-title.tone-busy { color: #dcd8ff; }
+.voicelens-window .phase-title.tone-warn { color: #f7dfae; }
+
+/* ---- Captions and text ------------------------------------------------- */
+.voicelens-window .caption { color: #9db3bf; font-size: 10px; font-weight: 700; letter-spacing: 1.1px; }
+.voicelens-window .status-detail { color: #a9bfca; font-size: 12px; }
 .voicelens-window .privacy { color: #a3c5bd; font-size: 11px; }
 .voicelens-window .dim-label, .voicelens-settings .dim-label { color: #9bb2bd; opacity: 1; font-size: 11px; }
+.voicelens-window .placeholder { color: #7f98a4; font-size: 14px; }
+
+/* ---- Buttons ----------------------------------------------------------- */
+.voicelens-window button, .voicelens-settings button {
+    background: #22303a; color: #e1eef1; border: 1px solid #33454f;
+    border-radius: 10px; box-shadow: none; text-shadow: none; -gtk-icon-shadow: none; padding: 8px 12px;
+    transition: background 120ms ease-out, border-color 120ms ease-out;
+}
+.voicelens-window button:hover, .voicelens-settings button:hover { background: #2d3f4a; border-color: #4f7268; }
+.voicelens-window button:active, .voicelens-settings button:active { background: #1c2831; }
+.voicelens-window button:disabled, .voicelens-settings button:disabled {
+    color: #6c8290; background: #172129; border-color: #24323b;
+}
+.voicelens-window button:focus, .voicelens-settings button:focus { outline: 2px solid #86e6d0; outline-offset: 2px; }
+.voicelens-window button.icon-button { padding: 8px 10px; min-width: 20px; }
+.voicelens-window button.suggested-action {
+    background: linear-gradient(to bottom, #a8f0dd, #8fe0cb); color: #10302b; border-color: #8fe0cb; font-weight: 700;
+    font-size: 14px;
+}
+.voicelens-window button.suggested-action:hover { background: #b9f6e6; border-color: #b9f6e6; }
+.voicelens-window button.suggested-action:disabled { background: #22343a; color: #5f7d79; border-color: #2a3f45; }
+.voicelens-window button.destructive-action {
+    background: linear-gradient(to bottom, #ffb8a9, #f0a08f); border-color: #f0a08f; color: #3c1c17; font-weight: 700;
+    font-size: 14px;
+}
+.voicelens-window button.destructive-action:hover { background: #ffc8bb; border-color: #ffc8bb; }
+.voicelens-window button.copied { background: #2b5a4e; color: #c8f6e8; border-color: #3f8a76; }
+.voicelens-window .settings-summary {
+    background: #1b2731; border-color: #2a3a45; color: #a3bbc6; font-size: 11px; padding: 4px 10px; border-radius: 999px;
+}
+.voicelens-window .settings-summary:hover { background: #24343f; color: #d7e6ec; }
+
+/* ---- Timer and level --------------------------------------------------- */
+.voicelens-window .timer { font-family: monospace; font-size: 20px; color: #d9e8ec; font-weight: 600; }
+.voicelens-window .timer.timer-warn { color: #ffb19f; }
+.voicelens-window .timer-limit { font-family: monospace; font-size: 10px; color: #6f8d99; }
+.voicelens-window levelbar.level-meter trough {
+    background: #0f171e; border: 1px solid #22303a; border-radius: 999px; padding: 0; min-height: 6px;
+}
+.voicelens-window levelbar.level-meter block {
+    background: linear-gradient(to right, #7fdcc6, #a8f0dd); border: none; border-radius: 999px; min-height: 6px;
+}
+.voicelens-window levelbar.level-meter block.empty { background: transparent; }
+.voicelens-window levelbar.level-meter:disabled block { background: #2a3a44; }
+
+/* ---- Microphone selector ---------------------------------------------- */
+.voicelens-window combobox button.combo {
+    background: #1b2731; border-color: #2c3d48; color: #e1eef1; padding: 8px 12px; border-radius: 10px;
+}
+.voicelens-window combobox button.combo:hover { background: #24343f; border-color: #4f7268; }
+.voicelens-window combobox button.combo:disabled { color: #6c8290; background: #172129; }
+.voicelens-window combobox arrow { color: #9db3bf; }
+
+/* ---- Transcript -------------------------------------------------------- */
+.voicelens-window .transcript, .voicelens-window .transcript text {
+    background: #16202a; color: #e6f1f3; font-size: 15px; caret-color: #9ae7d3;
+}
+.voicelens-window .transcript text selection { background: #35665f; color: #ffffff; }
+.voicelens-window scrollbar { background: transparent; }
+.voicelens-window scrollbar slider { background: #35474f; border-radius: 999px; min-width: 6px; min-height: 24px; }
+.voicelens-window scrollbar slider:hover { background: #4b6069; }
 .voicelens-window spinner { color: #9ae7d3; }
-.voicelens-settings list, .voicelens-settings row { background: #18222b; color: #e6f1f3; }
-.voicelens-settings row { border-bottom: 1px solid #293a45; padding: 4px; }
-.voicelens-settings row:selected { background: #28483f; }
-.voicelens-settings .heading { color: #91e3cd; font-size: 13px; font-weight: 700; }
-.voicelens-settings check, .voicelens-settings radio { background: #293d46; border-color: #728e98; }
-.voicelens-settings check:checked, .voicelens-settings radio:checked { background: #9ae7d3; color: #16332c; }
+
+/* ---- Menu popover ------------------------------------------------------ */
+.voicelens-window popover.voicelens-menu, .voicelens-window popover.voicelens-menu > * {
+    background: #16202a; color: #e6f1f3; border: 1px solid #2a3a45; border-radius: 12px;
+}
+.voicelens-window popover.voicelens-menu modelbutton {
+    background: transparent; border: none; padding: 8px 12px; border-radius: 8px; color: #e1eef1; min-width: 180px;
+}
+.voicelens-window popover.voicelens-menu modelbutton:hover { background: #24343f; }
+.voicelens-window popover.voicelens-menu modelbutton:disabled { color: #6c8290; }
+
+/* ---- Settings dialog --------------------------------------------------- */
+.voicelens-settings stackswitcher button {
+    padding: 4px 16px; font-size: 12px; background: transparent; border-color: transparent; color: #9db3bf; border-radius: 999px;
+}
+.voicelens-settings stackswitcher button:hover { background: #22303a; color: #e6f1f3; }
+.voicelens-settings stackswitcher button:checked { background: #24463e; color: #c8f6e8; border-color: #3f8a76; }
+.voicelens-settings .heading { color: #91e3cd; font-size: 12px; font-weight: 700; letter-spacing: 0.9px; }
+.voicelens-settings .row-title { color: #e6f1f3; font-size: 13px; font-weight: 600; }
+.voicelens-settings list, .voicelens-settings row { background: #16202a; color: #e6f1f3; }
+.voicelens-settings list.settings-list, .voicelens-settings scrolledwindow.model-scroller {
+    border: 1px solid #263540; border-radius: 12px; background: #16202a;
+}
+.voicelens-settings list.model-list { border-radius: 12px; }
+.voicelens-settings row { border-bottom: 1px solid #22303a; padding: 0; }
+.voicelens-settings row:last-child { border-bottom: none; }
+.voicelens-settings row.model-row:hover { background: #1b2731; }
+.voicelens-settings row.model-row:selected { background: #22453c; }
+.voicelens-settings row.model-row:selected .row-title { color: #d9f9f0; }
+.voicelens-settings row.model-missing .row-title { color: #b8c8cf; }
+.voicelens-settings .chip {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.5px; padding: 2px 8px; border-radius: 999px;
+    background: #22303a; color: #b7c9d1;
+}
+.voicelens-settings .chip-ok { background: #24463e; color: #9ae7d3; }
+.voicelens-settings .chip-accent { background: #2a2f5a; color: #c9c4ff; }
+.voicelens-settings .chip-muted { background: #1e2a32; color: #7f98a4; }
+.voicelens-settings radio.language-choice {
+    background: #1b2731; color: #cfdde3; border: 1px solid #2c3d48; border-radius: 10px; padding: 8px 12px;
+    -gtk-icon-source: none; min-width: 0; min-height: 0;
+}
+.voicelens-settings radio.language-choice:checked { background: #24463e; color: #d9f9f0; border-color: #3f8a76; font-weight: 700; }
+.voicelens-settings radio.language-choice:hover { background: #24343f; }
+.voicelens-settings switch { background: #2a3a45; border: 1px solid #35474f; border-radius: 999px; color: #e6f1f3; }
+.voicelens-settings switch:checked { background: #5cc6ad; border-color: #5cc6ad; }
+.voicelens-settings switch slider { background: #dce8ec; border: none; border-radius: 999px; min-width: 22px; min-height: 22px; }
+.voicelens-settings switch:checked slider { background: #10302b; }
+.voicelens-settings check, .voicelens-settings radio:not(.language-choice) { background: #293d46; border-color: #728e98; }
+.voicelens-settings check:checked, .voicelens-settings radio:not(.language-choice):checked { background: #9ae7d3; color: #16332c; }
+.voicelens-settings scrollbar slider { background: #35474f; border-radius: 999px; min-width: 6px; }
+.voicelens-settings messagedialog .titlebar { background: #0e151b; }

@@ -9,7 +9,7 @@ No browser, web server, cloud transcription, telemetry, account or subscription.
 
 **Early release:** the initial target is Ubuntu 24.04 / GNOME 46 on x86_64. Other distributions, architectures and GNOME versions need validation; this is not a universal Linux installer. Windows and macOS are not supported.
 
-[Deutsche Kurzanleitung](docs/usage-de.md) · [Models and licenses](docs/models.md) · [Release notes](docs/releases/v0.1.0.md) · [Validation](docs/release.md)
+[Deutsche Kurzanleitung](docs/usage-de.md) · [Models and licenses](docs/models.md) · [Release notes](docs/releases/v0.2.0.md) · [Validation](docs/release.md)
 
 ![VoiceLens interface](assets/voicelens-preview.png)
 
@@ -24,6 +24,9 @@ No browser, web server, cloud transcription, telemetry, account or subscription.
 - Supports English and German transcription and interface text.
 - Loads Whisper only in a separate, short-lived worker. The worker exits and is reaped before completion is shown.
 - Provides a GNOME Control-hold shortcut and animated caret overlay. Record / Stop and manual copying also work in the app.
+- Shows a live microphone level and the remaining recording budget while recording, with colour-coded state in the window.
+- Optionally appends each result below the existing transcript, or copies it to the clipboard automatically. Both are off by default.
+- Offers a transcript word count, a clear button, copy feedback, Escape to cancel and Ctrl+Shift+C to copy. The app menu lists the shortcuts and opens setup help.
 
 ## Install
 
@@ -89,10 +92,11 @@ Installation creates an application-menu entry and, when configured, a desktop s
 
 ## Use
 
-1. Open **VoiceLens** and choose English or German in settings.
-2. Leave microphone selection on **Automatic**, or select a specific input.
-3. Press **Record**, speak, then press **Stop**. Edit or copy the result.
+1. Open **VoiceLens** and choose English or German in settings (the app menu in the header also opens settings, setup help and the shortcut list).
+2. Leave microphone selection on **Automatic**, or select a specific input. The level bar under the selector moves while recording.
+3. Press **Record**, speak, then press **Stop**. Edit or copy the result; **Escape** cancels a running take and keeps the previous text.
 4. For dictation into another app, keep VoiceLens open, focus a text field, hold **Control alone**, speak, and release it.
+5. In **Settings → General**, optionally append each result below the existing transcript or copy it to the clipboard automatically.
 
 The global shortcut and overlay require the VoiceLens GNOME extension. Enable it and log out and back in after first installation or a helper update if needed. Supported Shell versions are listed in [the extension metadata](gnome-shell-extension/metadata.json); compatibility declarations are not equivalent to tests on every version.
 

@@ -63,6 +63,8 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(prefs.model, DEFAULT_MODEL)
         self.assertEqual(prefs.model, "small")
         self.assertTrue(prefs.push_to_talk)
+        self.assertFalse(prefs.append_transcript)
+        self.assertFalse(prefs.auto_copy)
 
     def test_invalid_values_fall_back(self) -> None:
         self.assertEqual(normalize_model("nope"), "small")
@@ -74,6 +76,22 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(loaded.language, "de")
         self.assertEqual(loaded.model, "base")
         self.assertFalse(loaded.push_to_talk)
+        self.assertFalse(loaded.append_transcript)
+        self.assertFalse(loaded.auto_copy)
+        save_settings(Settings(append_transcript=True, auto_copy=True))
+        loaded = load_settings()
+        self.assertTrue(loaded.append_transcript)
+        self.assertTrue(loaded.auto_copy)
+
+    def test_legacy_payload_without_behaviour_flags_uses_defaults(self) -> None:
+        from voicelens.settings import settings_path
+        path = settings_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"language": "de", "model": "small", "push_to_talk": true, "append_transcript": "yes"}')
+        loaded = load_settings()
+        self.assertEqual(loaded.language, "de")
+        self.assertFalse(loaded.append_transcript)
+        self.assertFalse(loaded.auto_copy)
 
     def test_catalog_includes_classic_sizes_and_ram(self) -> None:
         ids = [spec.id for spec in WHISPER_MODELS]

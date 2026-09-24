@@ -18,7 +18,8 @@ Nicht brechen. Werte und Listen stehen im genannten Code, nicht hier kopieren.
 
 ## Transkript
 
-- Neue erfolgreiche Transkription ersetzt den Text. Fehler, Abbruch und leere Erkennung lassen den bisherigen Text stehen (`ui.py`).
+- Neue erfolgreiche Transkription ersetzt den Text; nur mit der Opt-in-Einstellung `append_transcript` wird sie unter den bisherigen Text angehängt. Fehler, Abbruch und leere Erkennung lassen den bisherigen Text stehen (`ui.py`).
+- `auto_copy` (Opt-in) schreibt das neue Ergebnis in die Systemzwischenablage; ohne die Einstellung nur bei ausdrücklichem Kopieren oder als Einfüge-Fallback.
 - Sprachen der App: `i18n.SUPPORTED_LANGUAGES`. Default `en`.
 
 ## Offline

@@ -38,6 +38,8 @@ class Settings:
     language: str = DEFAULT_LANGUAGE
     model: str = DEFAULT_MODEL
     push_to_talk: bool = True
+    append_transcript: bool = False
+    auto_copy: bool = False
 
 
 def normalize_model(value: str | None) -> str:
@@ -171,11 +173,17 @@ def load_settings() -> Settings:
         return Settings(model=initial_model())
     if not isinstance(payload, dict):
         return Settings(model=initial_model())
-    ptt = payload.get("push_to_talk")
+
+    def flag(key: str, default: bool) -> bool:
+        value = payload.get(key)
+        return value if isinstance(value, bool) else default
+
     return Settings(
         language=normalize_language(payload.get("language") if isinstance(payload.get("language"), str) else None),
         model=payload["model"] if isinstance(payload.get("model"), str) and payload["model"] in KNOWN_MODELS else initial_model(),
-        push_to_talk=True if not isinstance(ptt, bool) else ptt,
+        push_to_talk=flag("push_to_talk", True),
+        append_transcript=flag("append_transcript", False),
+        auto_copy=flag("auto_copy", False),
     )
 
 
@@ -187,6 +195,8 @@ def save_settings(prefs: Settings) -> None:
             "language": prefs.language,
             "model": prefs.model,
             "push_to_talk": bool(prefs.push_to_talk),
+            "append_transcript": bool(prefs.append_transcript),
+            "auto_copy": bool(prefs.auto_copy),
         },
         indent=2,
     ) + "\n"

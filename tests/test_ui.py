@@ -1,4 +1,5 @@
 """Native GTK actions using an explicit backend double; no desktop/audio I/O."""
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -517,6 +518,109 @@ class WindowTests(unittest.TestCase):
         self.window._tick()
         self.assertEqual(self.text(), 'Previous text')
         self.assertEqual(self.window.state, 'idle')
+
+    def test_append_mode_keeps_previous_text_below_new_result(self):
+        self.window.text.get_buffer().set_text('Previous text')
+        self.window.set_append_transcript(True)
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.text(), 'Previous text\n' + self.api.result_text)
+        self.assertIn('appended', self.window.status.get_text())
+        self.window.set_append_transcript(False)
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.text(), self.api.result_text)
+
+    def test_auto_copy_places_result_in_clipboard(self):
+        self.window.set_auto_copy(True)
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'idle')
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        self.assertEqual(clipboard.wait_for_text(), self.api.result_text)
+        self.assertIn('copied', self.window.status.get_text())
+
+    def test_clear_button_empties_transcript_only_when_idle(self):
+        self.assertFalse(self.window.clear.get_sensitive())
+        self.window.text.get_buffer().set_text('Some words here')
+        self.assertTrue(self.window.clear.get_sensitive())
+        self.assertIn('3 words', self.window.text_count.get_text())
+        self.window.record.clicked()
+        self.pump(lambda: self.window.state == 'recording')
+        self.assertFalse(self.window.clear.get_sensitive())
+        self.window._clear()
+        self.assertEqual(self.text(), 'Some words here')
+        self.window.record.clicked()
+        self.pump(lambda: self.window.state == 'idle')
+        self.window.clear.clicked()
+        self.assertEqual(self.text(), '')
+        self.assertFalse(self.window.copy.get_sensitive())
+        self.assertIn('cleared', self.window.status.get_text())
+
+    def test_copy_shows_transient_feedback_and_restores_label(self):
+        self.window.text.get_buffer().set_text('Copy me')
+        self.window.copy.clicked()
+        self.assertEqual(self.window.copy.get_label(), 'Copied ✓')
+        self.pump(lambda: self.window.copy.get_label() == 'Copy')
+        self.window.copy.clicked()
+        self.window.set_language('de')
+        self.assertEqual(self.window.copy.get_label(), 'Kopieren')
+
+    def test_escape_cancels_recording_and_keeps_previous_text(self):
+        self.window.text.get_buffer().set_text('Previous text')
+        self.window.record.clicked()
+        self.pump(lambda: self.window.state == 'recording')
+        self.assertTrue(self.window._on_shortcut(self.window, self._key(Gdk.KEY_Escape, True)))
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.text(), 'Previous text')
+        self.assertIn('Canceled', self.window.status.get_text())
+        self.assertTrue(self.api.created[0].closed)
+        self.assertEqual(self.api.calls, 0)
+        self.assertFalse(self.window._on_shortcut(self.window, self._key(Gdk.KEY_Escape, True)))
+
+    def test_control_shift_c_copies_transcript(self):
+        self.window.text.get_buffer().set_text('Shortcut text')
+        event = self._key(Gdk.KEY_C, True)
+        event.state = Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK
+        self.assertTrue(self.window._on_shortcut(self.window, event))
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        self.assertEqual(clipboard.wait_for_text(), 'Shortcut text')
+        plain = self._key(Gdk.KEY_c, True)
+        plain.state = Gdk.ModifierType.CONTROL_MASK
+        self.assertFalse(self.window._on_shortcut(self.window, plain))
+
+    def test_settings_switches_persist_behaviour_flags(self):
+        self.window.settings_button.clicked()
+        self.pump(lambda: self.window.settings_dialog is not None)
+        dialog = self.window.settings_dialog
+        labels = ' '.join(iter_labels(dialog))
+        self.assertIn('Append to the transcript', labels)
+        self.assertIn('Copy the text automatically', labels)
+        self.assertIn('Recommended', labels)
+        self.assertFalse(dialog.append_switch.get_active())
+        dialog.append_switch.set_active(True)
+        dialog.auto_copy_switch.set_active(True)
+        dialog.ptt_check.set_active(False)
+        self.assertTrue(self.window.prefs.append_transcript)
+        self.assertTrue(self.window.prefs.auto_copy)
+        self.assertFalse(self.window.prefs.push_to_talk)
+        saved = json.loads((Path(self._xdg.name) / 'voicelens/settings.json').read_text())
+        self.assertEqual(saved['append_transcript'], True)
+        self.assertEqual(saved['auto_copy'], True)
+        self.assertEqual(saved['push_to_talk'], False)
+        dialog.response(Gtk.ResponseType.CLOSE)
+        self.pump(lambda: self.window.settings_dialog is None)
+
+    def test_menu_opens_shortcuts_and_setup_help(self):
+        self.assertEqual(self.window.menu_shortcuts.get_property('text'), 'Keyboard shortcuts')
+        window = self.window._open_shortcuts()
+        self.assertIsNotNone(self.window.shortcuts_window)
+        self.assertIs(self.window._open_shortcuts(), window)
+        window.destroy()
+        self.assertIsNone(self.window.shortcuts_window)
+        help_dialog = self.window._open_setup_help()
+        self.assertTrue(help_dialog.get_visible())
+        help_dialog.destroy()
+        self.assertEqual(self.api.created, [])
 
     def test_visualizer_is_static_at_rest_and_when_unmapped(self):
         visual = self.window.visualizer

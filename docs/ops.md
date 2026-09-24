@@ -32,7 +32,7 @@ Umgebungsvariablen in einem Terminal gelten nicht automatisch für das Anwendung
 
 Katalog und RAM-Hinweise: `settings.WHISPER_MODELS`. Vollständigkeit: `settings.missing_model_files`. Gesucht werden ein zugeordneter expliziter Ordner, Benutzer-Modelle und Hugging-Face-Snapshots; es wird nichts geholt. Modellquellen und Formate: [models.md](models.md). Vorauswahl ohne gespeichertes Modell: `settings.initial_model`; gespeicherte Entscheidungen bleiben erhalten.
 
-Persistenz: `~/.config/voicelens/settings.json` (`language`, `model`, `push_to_talk`).
+Persistenz: `~/.config/voicelens/settings.json` (`language`, `model`, `push_to_talk`, `append_transcript`, `auto_copy`). Fehlende oder ungültige Schlüssel fallen auf die Standardwerte zurück.
 
 `install.py --check` verändert keine Einstellungen. Die Installation speichert die vorhandene/vorausgewählte Modellwahl nur bei lokal verfügbarem Modell. Mikrofone werden frisch erkannt und nicht als veraltende Geräteliste gespeichert.
 

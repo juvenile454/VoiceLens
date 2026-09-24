@@ -53,7 +53,7 @@ class VoiceVisualizer(Gtk.Image):
         # surface here and hand GTK packed pixels, avoiding another dependency.
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 148, 148)
         cr = cairo.Context(surface)
-        cr.set_source_rgb(16 / 255, 23 / 255, 30 / 255)
+        cr.set_source_rgb(14 / 255, 21 / 255, 27 / 255)
         cr.paint()
         self._draw(cr)
         surface.flush()
