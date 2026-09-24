@@ -53,7 +53,7 @@ class VoiceVisualizer(Gtk.Image):
         # surface here and hand GTK packed pixels, avoiding another dependency.
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 148, 148)
         cr = cairo.Context(surface)
-        cr.set_source_rgb(16 / 255, 23 / 255, 30 / 255)
+        cr.set_source_rgb(14 / 255, 21 / 255, 27 / 255)
         cr.paint()
         self._draw(cr)
         surface.flush()
@@ -72,7 +72,7 @@ class VoiceVisualizer(Gtk.Image):
         reduced = not self.get_settings().get_property('gtk-enable-animations')
         t = 0 if self.phase == 'idle' or reduced else time.monotonic() - self._started
         e = self.energy if self.phase == 'recording' else 0
-        busy = self.phase in ('stopping', 'transcribing', 'settling')
+        busy = self.phase in ('stopping', 'transcribing', 'loading', 'settling')
         x, y = w / 2, h / 2
         scale = 1.0
         if self.phase == 'settling' and not reduced:

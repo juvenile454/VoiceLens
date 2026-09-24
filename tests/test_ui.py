@@ -1,4 +1,5 @@
 """Native GTK actions using an explicit backend double; no desktop/audio I/O."""
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -517,6 +518,216 @@ class WindowTests(unittest.TestCase):
         self.window._tick()
         self.assertEqual(self.text(), 'Previous text')
         self.assertEqual(self.window.state, 'idle')
+
+    def test_append_mode_keeps_previous_text_below_new_result(self):
+        self.window.text.get_buffer().set_text('Previous text')
+        self.window.set_append_transcript(True)
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.text(), 'Previous text\n' + self.api.result_text)
+        self.assertIn('appended', self.window.status.get_text())
+        self.window.set_append_transcript(False)
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.text(), self.api.result_text)
+
+    def test_auto_copy_places_result_in_clipboard(self):
+        self.window.set_auto_copy(True)
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'idle')
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        self.assertEqual(clipboard.wait_for_text(), self.api.result_text)
+        self.assertIn('copied', self.window.status.get_text())
+
+    def test_clear_button_empties_transcript_only_when_idle(self):
+        self.assertFalse(self.window.clear.get_sensitive())
+        self.window.text.get_buffer().set_text('Some words here')
+        self.assertTrue(self.window.clear.get_sensitive())
+        self.assertIn('3 words', self.window.text_count.get_text())
+        self.window.record.clicked()
+        self.pump(lambda: self.window.state == 'recording')
+        self.assertFalse(self.window.clear.get_sensitive())
+        self.window._clear()
+        self.assertEqual(self.text(), 'Some words here')
+        self.window.record.clicked()
+        self.pump(lambda: self.window.state == 'idle')
+        self.window.clear.clicked()
+        self.assertEqual(self.text(), '')
+        self.assertFalse(self.window.copy.get_sensitive())
+        self.assertIn('cleared', self.window.status.get_text())
+
+    def test_copy_shows_transient_feedback_and_restores_label(self):
+        self.window.text.get_buffer().set_text('Copy me')
+        self.window.copy.clicked()
+        self.assertEqual(self.window.copy.get_label(), 'Copied ✓')
+        self.pump(lambda: self.window.copy.get_label() == 'Copy')
+        self.window.copy.clicked()
+        self.window.set_language('de')
+        self.assertEqual(self.window.copy.get_label(), 'Kopieren')
+
+    def test_escape_cancels_recording_and_keeps_previous_text(self):
+        self.window.text.get_buffer().set_text('Previous text')
+        self.window.record.clicked()
+        self.pump(lambda: self.window.state == 'recording')
+        self.assertTrue(self.window._on_shortcut(self.window, self._key(Gdk.KEY_Escape, True)))
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.text(), 'Previous text')
+        self.assertIn('Canceled', self.window.status.get_text())
+        self.assertTrue(self.api.created[0].closed)
+        self.assertEqual(self.api.calls, 0)
+        self.assertFalse(self.window._on_shortcut(self.window, self._key(Gdk.KEY_Escape, True)))
+
+    def test_control_shift_c_copies_transcript(self):
+        self.window.text.get_buffer().set_text('Shortcut text')
+        event = self._key(Gdk.KEY_C, True)
+        event.state = Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.SHIFT_MASK
+        self.assertTrue(self.window._on_shortcut(self.window, event))
+        clipboard = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+        self.assertEqual(clipboard.wait_for_text(), 'Shortcut text')
+        plain = self._key(Gdk.KEY_c, True)
+        plain.state = Gdk.ModifierType.CONTROL_MASK
+        self.assertFalse(self.window._on_shortcut(self.window, plain))
+
+    def test_settings_switches_persist_behaviour_flags(self):
+        self.window.settings_button.clicked()
+        self.pump(lambda: self.window.settings_dialog is not None)
+        dialog = self.window.settings_dialog
+        labels = ' '.join(iter_labels(dialog))
+        self.assertIn('Append to the transcript', labels)
+        self.assertIn('Copy the text automatically', labels)
+        self.assertIn('Recommended', labels)
+        self.assertFalse(dialog.append_switch.get_active())
+        dialog.append_switch.set_active(True)
+        dialog.auto_copy_switch.set_active(True)
+        dialog.ptt_check.set_active(False)
+        self.assertTrue(self.window.prefs.append_transcript)
+        self.assertTrue(self.window.prefs.auto_copy)
+        self.assertFalse(self.window.prefs.push_to_talk)
+        saved = json.loads((Path(self._xdg.name) / 'voicelens/settings.json').read_text())
+        self.assertEqual(saved['append_transcript'], True)
+        self.assertEqual(saved['auto_copy'], True)
+        self.assertEqual(saved['push_to_talk'], False)
+        dialog.response(Gtk.ResponseType.CLOSE)
+        self.pump(lambda: self.window.settings_dialog is None)
+
+    def test_menu_opens_shortcuts_and_setup_help(self):
+        self.assertEqual(self.window.menu_shortcuts.get_property('text'), 'Keyboard shortcuts')
+        window = self.window._open_shortcuts()
+        self.assertIsNotNone(self.window.shortcuts_window)
+        self.assertIs(self.window._open_shortcuts(), window)
+        window.destroy()
+        self.assertIsNone(self.window.shortcuts_window)
+        help_dialog = self.window._open_setup_help()
+        self.assertTrue(help_dialog.get_visible())
+        help_dialog.destroy()
+        self.assertEqual(self.api.created, [])
+
+    def test_keep_model_controls_persist_and_gate_minutes(self):
+        self.window.settings_button.clicked()
+        self.pump(lambda: self.window.settings_dialog is not None)
+        dialog = self.window.settings_dialog
+        labels = ' '.join(iter_labels(dialog))
+        self.assertIn('Model in memory', labels)
+        self.assertIn('Keep loaded', labels)
+        self.assertTrue(dialog.keep_release.get_active())
+        self.assertFalse(dialog.keep_minutes.get_sensitive())
+        dialog.keep_timed.set_active(True)
+        self.assertTrue(dialog.keep_minutes.get_sensitive())
+        dialog.keep_minutes.set_value(3)
+        self.assertEqual(self.window.prefs.keep_model, 'timed')
+        self.assertEqual(self.window.prefs.keep_minutes, 3)
+        self.assertEqual((self.window.controller.keep_mode, self.window.controller.keep_seconds), ('timed', 180.0))
+        saved = json.loads((Path(self._xdg.name) / 'voicelens/settings.json').read_text())
+        self.assertEqual((saved['keep_model'], saved['keep_minutes']), ('timed', 3))
+        dialog.keep_always.set_active(True)
+        self.assertFalse(dialog.keep_minutes.get_sensitive())
+        self.assertEqual(self.window.controller.keep_mode, 'always')
+        self.assertEqual(self.api.sessions, [])  # nothing loads while the dialog is open
+        dialog.response(Gtk.ResponseType.CLOSE)
+        self.pump(lambda: self.window.settings_dialog is None)
+        self.pump(lambda: self.window.state == 'idle' and bool(self.api.sessions))
+        self.assertEqual(self.api.sessions[0].model, 'small')
+        self.assertIn('is loaded and stays in memory', self.window.status.get_text())
+
+    def test_keep_loaded_reuses_worker_and_menu_releases_it(self):
+        self.window.set_keep_model('always')
+        self.pump(lambda: self.window.state == 'idle' and bool(self.api.sessions))
+        self.assertEqual(self.window.memory_status.get_text(), 'Small in memory · kept loaded')
+        self.assertTrue(self.window.menu_release.get_sensitive())
+        self.assertFalse(self.window.menu_preload.get_sensitive())
+        self.assertEqual(self.api.calls, 0)
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.text(), self.api.result_text)
+        self.assertEqual(len(self.api.sessions), 1)
+        self.assertEqual(self.api.sessions[0].calls, 1)
+        self.assertEqual(self.window.memory_status.get_text(), 'Small in memory · kept loaded')
+        self.window.menu_release.clicked()
+        self.pump(lambda: 'released' in self.window.status.get_text())
+        self.assertTrue(self.api.sessions[0].closed)
+        self.assertEqual(self.window.memory_status.get_text(), 'Model unloaded')
+        self.assertTrue(self.window.menu_preload.get_sensitive())
+        self.assertFalse(self.window.menu_release.get_sensitive())
+        self.window.menu_preload.clicked()
+        self.pump(lambda: self.window.state == 'idle' and len(self.api.sessions) == 2)
+
+    def test_keep_loaded_preloads_at_startup_without_recording(self):
+        window = VoiceLensWindow(backend_api=self.api, prefs=Settings(keep_model='always'))
+        try:
+            window._ptt_needs_extension = lambda: False
+            window.show_all()
+            self.pump(lambda: not window.devices_loading)
+            self.pump(lambda: window.state == 'idle' and bool(self.api.sessions))
+            self.assertEqual(self.api.created, [])
+            self.assertEqual(self.api.calls, 0)
+            self.assertEqual(window.controller.resident_model, 'small')
+            window._close()
+            self.pump(lambda: self.api.sessions[0].closed)
+        finally:
+            window.destroy()
+
+    def test_timed_policy_counts_down_and_releases(self):
+        self.window.set_keep_model('timed')
+        self.window.set_keep_minutes(2)
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.window.memory_status.get_text(), 'Small in memory · released in 2 min')
+        self.window.controller.set_keep_policy('timed', 0.3)
+        self.pump(lambda: self.window.controller.resident_model is None, timeout=3)
+        self.pump(lambda: self.window.memory_status.get_text() == 'Model unloaded')
+        self.assertEqual(self.window.status.get_text(), 'Model released. Memory is free again.')
+        self.assertTrue(self.api.sessions[0].closed)
+
+    def test_model_loads_during_first_take_and_escape_cancels_loading(self):
+        self.window.controller.set_keep_policy('always')
+        self.api.allow_load.clear()
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'loading')
+        self.assertEqual(self.window.record.get_label(), 'Cancel')
+        self.assertIn('Loading Whisper Small', self.window.status.get_text())
+        self.assertEqual(self.window.memory_status.get_text(), 'Loading model…')
+        self.api.allow_load.set()
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertEqual(self.text(), self.api.result_text)
+        self.window.controller.release_model()
+        self.api.allow_load.clear()
+        self.window.text.get_buffer().set_text('Keep me')
+        self.record_and_stop()
+        self.pump(lambda: self.window.state == 'loading')
+        self.assertTrue(self.window.cancel_operation())
+        self.pump(lambda: self.window.state == 'idle')
+        self.assertIn('Canceled', self.window.status.get_text())
+        self.assertEqual(self.text(), 'Keep me')
+        self.assertIsNone(self.window.controller.resident_model)
+
+    def test_model_switch_replaces_resident_worker(self):
+        self.window.set_keep_model('always')
+        self.pump(lambda: self.window.state == 'idle' and bool(self.api.sessions))
+        self.window.set_model('base')
+        self.assertTrue(self.api.sessions[0].closed)
+        self.pump(lambda: self.window.state == 'idle' and len(self.api.sessions) == 2)
+        self.assertEqual(self.api.sessions[1].model, 'base')
+        self.assertEqual(self.window.memory_status.get_text(), 'Base in memory · kept loaded')
 
     def test_visualizer_is_static_at_rest_and_when_unmapped(self):
         visual = self.window.visualizer

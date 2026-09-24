@@ -9,12 +9,13 @@ Start: `run.sh` → `/usr/bin/python3 -m voicelens` (`voicelens/__main__.py`). O
 | Pfad | Rolle |
 |---|---|
 | `voicelens/__main__.py` | CLI vs. GUI; startet nie implizit eine Aufnahme |
-| `voicelens/ui.py` | GTK3-Fenster, Single-Instance `org.voicelens.VoiceLens`, Settings-Dialog |
+| `voicelens/ui.py` | GTK3-Fenster, Single-Instance `org.voicelens.VoiceLens`, Settings-Dialog (Seiten Allgemein/Modell), Tastenkürzel-Dialog, Kopfzeilenmenü |
 | `voicelens/visualizer.py`, `assets/ui.css` | Native Lichtlinse, gemeinsame Gestaltung von Hauptfenster und Einstellungen; statisch im Leerlauf |
-| `voicelens/controller.py` | Eine Hintergrundoperation; Events in eine Queue, GTK liest sie |
+| `voicelens/controller.py` | Eine Hintergrundoperation; Events in eine Queue, GTK liest sie; hält optional den residenten Worker samt Leerlauf-Timer |
 | `voicelens/backend.py` | Mikrofone (`pactl`), ffmpeg-Aufnahme in memfd, Spawn von Guard+Worker |
 | `voicelens/guard.py` | `prctl(PDEATHSIG)` plus Race-Check, dann `exec` des Kindes |
-| `voicelens/worker.py` | One-shot faster-whisper im STT-Interpreter; JSON auf stdout; danach Exit |
+| `voicelens/worker.py` | faster-whisper im STT-Interpreter: One-shot (JSON auf stdout, dann Exit) oder resident mit `--serve` (Anfragen über Socket, Modell bleibt geladen) |
+| `voicelens/ipc.py` | Zeilenweise JSON über Unix-Socket plus Deskriptorübergabe (`SCM_RIGHTS`); gemeinsam für GUI und Worker |
 | `voicelens/settings.py` | `~/.config/voicelens/settings.json`, lokaler Modellkatalog, keine Downloads |
 | `voicelens/diagnostics.py` | Nur lesende Einrichtungsprüfung für Installer und CLI: Abhängigkeiten, Geräte, vollständige Modelle |
 | `voicelens/i18n.py` | UI-Strings; Default `en` |
@@ -32,7 +33,10 @@ Start: `run.sh` → `/usr/bin/python3 -m voicelens` (`voicelens/__main__.py`). O
 GTK (System-Python) ──queue──► controller-Thread
                                  ├─ ffmpeg via guard.py  → anonymes memfd WAV (16 kHz mono)
                                  └─ STT-Python via guard.py → worker.py → JSON → Exit
-GUI importiert keine STT-Bibliotheken. Erfolg erst nach Abholen des Kindes (`model_unloaded`).
+                                    oder (Opt-in) residenter worker.py --serve ◄─socket+memfd-fd─► ModelSession
+GUI importiert keine STT-Bibliotheken. Ohne Halte-Policy Erfolg erst nach Abholen des Kindes (`model_unloaded`);
+mit Policy antwortet der residente Worker (`resident`), bleibt Kind mit PDEATHSIG und wird bei Zeitablauf,
+Policy-/Modellwechsel, Abbruch oder Schließen über `controller.release_model` beendet und abgeholt.
 ```
 
 ffmpeg und Worker laufen in neuer Session (`start_new_session`) mit `pass_fds` nur für den memfd. Umgebung des Workers ist eine Allowlist plus `HF_*_OFFLINE=1`.

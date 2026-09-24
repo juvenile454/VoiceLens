@@ -17,6 +17,7 @@ import ctypes
 from pathlib import Path
 from typing import Any
 
+from . import ipc
 from .i18n import current_language, t
 from .settings import CACHE_ENV_KEYS, data_dir
 
@@ -361,6 +362,193 @@ def transcribe_file(
             process.communicate(timeout=1)
         except (subprocess.TimeoutExpired, ValueError):
             pass
+
+
+MODEL_LOAD_TIMEOUT = 300.0
+
+
+class ModelSession:
+    """A resident, guarded worker that keeps one Whisper model loaded between takes.
+
+    Only used when the user opted into keeping the model in memory. The worker is
+    still a child of this process with PDEATHSIG; ``close`` ends and reaps it.
+    """
+
+    def __init__(
+        self,
+        model: str = "small",
+        *,
+        language: str = "en",
+        cancel: threading.Event | None = None,
+        timeout: float = MODEL_LOAD_TIMEOUT,
+    ) -> None:
+        if cancel is not None and cancel.is_set():
+            raise Cancelled(t("cancelled"))
+        self.model = model
+        self.worker_pid: int | None = None
+        self.started_at = time.monotonic()
+        self.last_used = self.started_at
+        self._lock = threading.Lock()
+        self._channel: ipc.Channel | None = None
+        self._process: subprocess.Popen[bytes] | None = None
+        self._stderr_file = None
+        worker_python = _stt_python()
+        channel, child = ipc.pair()
+        stderr_file = tempfile.TemporaryFile(mode="w+b")
+        command = [
+            SYSTEM_PYTHON, _module_path("guard.py"), "--parent-pid", str(os.getpid()), "--",
+            worker_python, "-B", _module_path("worker.py"), "--serve",
+            "--model", model, "--language", language, "--control-fd", str(child.fileno()),
+        ]
+        try:
+            process = subprocess.Popen(
+                command,
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=stderr_file,
+                pass_fds=(child.fileno(),),
+                start_new_session=True,
+                env=_sanitized_worker_environment(model=model, language=language),
+            )
+        except OSError as exc:
+            channel.close()
+            child.close()
+            stderr_file.close()
+            raise AppError(t("stt_start_failed")) from exc
+        finally:
+            try:
+                child.close()
+            except OSError:
+                pass
+        self._channel = channel
+        self._process = process
+        self._stderr_file = stderr_file
+        try:
+            reply = self._receive(timeout, cancel, failure_key="model_load_failed")
+        except BaseException:
+            self.close()
+            raise
+        if reply.get("ok") is not True or reply.get("event") != "loaded":
+            detail = reply.get("error")
+            self.close()
+            raise AppError(t("model_load_failed", detail=detail if isinstance(detail, str) and detail else t("unknown_error")))
+        pid = reply.get("worker_pid")
+        self.worker_pid = pid if isinstance(pid, int) else process.pid
+
+    @property
+    def alive(self) -> bool:
+        process = self._process
+        return process is not None and process.poll() is None and self._channel is not None
+
+    @property
+    def pid(self) -> int | None:
+        return self._process.pid if self._process is not None else None
+
+    def _stderr_detail(self) -> str:
+        if self._stderr_file is None:
+            return ""
+        try:
+            self._stderr_file.seek(0)
+            detail = self._stderr_file.read(1200).decode("utf-8", "replace").strip()
+            return detail.splitlines()[-1] if detail else ""
+        except (OSError, UnicodeError):
+            return ""
+
+    def _receive(self, timeout: float, cancel: threading.Event | None, *, failure_key: str) -> dict[str, Any]:
+        channel = self._channel
+        process = self._process
+        assert channel is not None and process is not None
+
+        def poll() -> None:
+            if cancel is not None and cancel.is_set():
+                raise Cancelled(t("transcription_cancelled"))
+            if process.poll() is not None:
+                detail = self._stderr_detail() or t("process_exited")
+                raise AppError(t(failure_key, detail=detail))
+
+        try:
+            reply, fds = channel.receive(timeout, poll=poll)
+        except ipc.ChannelTimeout as error:
+            raise AppError(t("model_load_timeout" if failure_key == "model_load_failed" else "transcription_timeout")) from error
+        except ipc.ChannelClosed as error:
+            detail = self._stderr_detail() or t("process_exited")
+            raise AppError(t(failure_key, detail=detail)) from error
+        for fd in fds:
+            try:
+                os.close(fd)
+            except OSError:
+                pass
+        return reply
+
+    def transcribe(
+        self,
+        path: str,
+        cancel: threading.Event | None = None,
+        *,
+        pass_fds: tuple = (),
+        timeout: float = 900,
+        language: str = "en",
+    ) -> dict[str, Any]:
+        """Transcribe one recording with the loaded model; the audio memfd travels as a descriptor."""
+        if timeout <= 0:
+            raise AppError(t("timeout_positive"))
+        if cancel is not None and cancel.is_set():
+            raise Cancelled(t("transcription_cancelled"))
+        if not self.alive:
+            raise AppError(t("model_session_lost"))
+        channel = self._channel
+        assert channel is not None
+        request = {"op": "transcribe", "language": language}
+        if not pass_fds:
+            request["path"] = path
+        try:
+            channel.send(request, tuple(pass_fds))
+            reply = self._receive(timeout, cancel, failure_key="model_session_failed")
+        except BaseException:
+            # A cancelled or failed take must not leave a half-finished worker behind.
+            self.close()
+            raise
+        self.last_used = time.monotonic()
+        if not reply.get("ok"):
+            detail = reply.get("error")
+            if not isinstance(detail, str) or not detail.strip():
+                detail = t("unknown_error")
+            raise AppError(t("transcription_failed", detail=detail))
+        text = reply.get("text")
+        if not isinstance(text, str):
+            raise AppError(t("invalid_result"))
+        reported_language = reply.get("language")
+        reported_model = reply.get("model")
+        return {
+            "text": text,
+            "language": reported_language if reported_language in ("en", "de") else language,
+            "model": reported_model if isinstance(reported_model, str) and reported_model else self.model,
+            "model_unloaded": False,
+            "resident": True,
+            "worker_pid": self.worker_pid,
+        }
+
+    def close(self) -> None:
+        """Ask the worker to quit, then stop and reap it; safe to call repeatedly."""
+        with self._lock:
+            channel, self._channel = self._channel, None
+            process, self._process = self._process, None
+            stderr_file, self._stderr_file = self._stderr_file, None
+        if channel is not None:
+            if process is not None and process.poll() is None:
+                try:
+                    channel.send({"op": "quit"})
+                except OSError:
+                    pass
+            channel.close()
+        if process is not None:
+            try:
+                process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                pass
+            _stop_process(process)
+        if stderr_file is not None:
+            stderr_file.close()
 
 
 _WAV_HEADER_SCAN = 1024

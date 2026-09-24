@@ -40,25 +40,46 @@ def main():
     icon = GdkPixbuf.Pixbuf.new_from_file_at_scale(
         str(Path(__file__).resolve().parent.parent / 'assets/voicelens.svg'), 256, 256, True)
     icon.savev(str(args.output / 'app-icon.png'), 'png', [], [])
-    window = VoiceLensWindow(backend_api=FakeBackend(), prefs=Settings(language='de'))
+    model_available = mock.patch('voicelens.ui.is_model_available', return_value=True)
+    model_available.start()
+    window = VoiceLensWindow(backend_api=FakeBackend(), prefs=Settings(language='de', keep_model='timed', keep_minutes=10))
     window._ptt_needs_extension = lambda: False
     window._ptt_osd_hide = lambda: None
     window.show_all()
     capture(window, args.output / 'voicelens-de.png')
     window.settings_button.clicked()
     capture(window.settings_dialog, args.output / 'settings-de.png')
+    window.settings_dialog.stack.set_visible_child_name('model')
+    capture(window.settings_dialog, args.output / 'settings-model-de.png')
     with mock.patch('voicelens.ui.data_dir', return_value=Path('/home/user/.local/share/voicelens')):
         help_dialog = window.settings_dialog._setup_help()
         capture(help_dialog, args.output / 'setup-help-de.png')
         help_dialog.destroy()
     window.settings_dialog.destroy()
+    shortcuts = window._open_shortcuts()
+    capture(shortcuts, args.output / 'shortcuts-de.png')
+    shortcuts.destroy()
     for phase in ('recording', 'transcribing'):
         window.state = phase
         window.status.set_text(t('status_listening') if phase == 'recording' else t('status_transcribing', language='Deutsch'))
         window.elapsed.set_text('00:12')
         window._controls()
         window.visualizer.level = 0.65
+        if phase == 'recording':
+            window.level_bar.set_value(0.65)
         capture(window, args.output / f'{phase}-de.png')
+    window.state = 'idle'
+    window._controls()
+    window.text.get_buffer().set_text(
+        'Das ist ein Beispieltranskript aus dem synthetischen Backend. '
+        'Es zeigt, wie ein fertiger Text im Fenster aussieht und bearbeitet werden kann.')
+    window.status.set_text(t('status_done'))
+    capture(window, args.output / 'result-de.png')
+    window.memory_status.set_text(t('memory_resident_timed', model='Small', minutes=9))
+    window.memory_status.get_style_context().add_class('memory-resident')
+    capture(window, args.output / 'resident-de.png')
+    window.memory_status.get_style_context().remove_class('memory-resident')
+    window.text.get_buffer().set_text('')
     window.state = 'idle'
     window.elapsed.set_text('00:00')
     window.prefs.language = 'en'
@@ -69,6 +90,7 @@ def main():
     window.resize(560, 620)
     capture(window, args.output / 'compact-en.png')
     window.destroy()
+    model_available.stop()
     print(f'Synthetic GTK previews: {args.output.resolve()}')
 
 
