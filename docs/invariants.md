@@ -5,7 +5,8 @@ Nicht brechen. Werte und Listen stehen im genannten Code, nicht hier kopieren.
 ## Prozess und Speicher
 
 - Whisper nur in `voicelens/worker.py`, Interpreter aus `backend._stt_python()`. GUI-Prozess importiert das Modell nicht (`ui.py`).
-- `backend.transcribe_file` kehrt erst zurück, nachdem der Worker beendet und abgeholt ist. Erst dann darf die UI Erfolg/`model_unloaded` zeigen (`controller.py`).
+- Standard (`keep_model = release`): `backend.transcribe_file` kehrt erst zurück, nachdem der Worker beendet und abgeholt ist. Erst dann darf die UI Erfolg/`model_unloaded` zeigen (`controller.py`).
+- Nur mit Opt-in (`keep_model = timed|always`) bleibt ein residenter Worker (`backend.ModelSession`, `worker.py --serve`) zwischen Aufnahmen geladen. Er ist ein Kind des GUI-Prozesses mit Guard/`PDEATHSIG`; Audio erreicht ihn nur als übergebener memfd-Deskriptor (`ipc.py`, `SCM_RIGHTS`). Zeitablauf, Policy-Wechsel, Modellwechsel, Abbruch und Fensterschließen beenden und holen ihn ab (`controller.release_model`). Die Fußzeile zeigt, solange ein Modell geladen ist. Kein Modell wird beim Start geladen, außer der Benutzer hat „Dauerhaft behalten“ gewählt.
 - ffmpeg-Recorder und Worker werden über `guard.py` gestartet (`PDEATHSIG` + Parent-PID-Check vor und nach `prctl`). Keine fremden PIDs killen; nur die eigene Prozessgruppe (`backend._stop_process`).
 - Abbruch, Fehler, Timeout und Fensterschließen räumen Kinder und den memfd ab (`Recorder.close`, `ui.py` `_close`).
 

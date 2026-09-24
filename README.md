@@ -22,7 +22,7 @@ No browser, web server, cloud transcription, telemetry, account or subscription.
 - Finds complete local CTranslate2 Whisper models. On first use, prefers Small, then an available smaller model, then larger models. Your saved choice is preserved.
 - Checks the local transcription runtime before enabling recording. Missing components have setup guidance in English and German.
 - Supports English and German transcription and interface text.
-- Loads Whisper only in a separate, short-lived worker. The worker exits and is reaped before completion is shown.
+- Loads Whisper only in a separate worker process. By default the worker exits and is reaped before completion is shown; optionally it stays loaded for a chosen number of minutes or permanently, so the next take starts without the loading delay.
 - Provides a GNOME Control-hold shortcut and animated caret overlay. Record / Stop and manual copying also work in the app.
 - Shows a live microphone level and the remaining recording budget while recording, with colour-coded state in the window.
 - Optionally appends each result below the existing transcript, or copies it to the clipboard automatically. Both are off by default.
@@ -97,6 +97,7 @@ Installation creates an application-menu entry and, when configured, a desktop s
 3. Press **Record**, speak, then press **Stop**. Edit or copy the result; **Escape** cancels a running take and keeps the previous text.
 4. For dictation into another app, keep VoiceLens open, focus a text field, hold **Control alone**, speak, and release it.
 5. In **Settings → General**, optionally append each result below the existing transcript or copy it to the clipboard automatically.
+6. In **Settings → Model**, choose whether the model is released after each take (default), kept for a number of minutes after the last use, or kept loaded (then it is loaded at start-up). The footer shows what is in memory; the app menu can load or release the model at any time. A kept model uses its RAM for as long as it stays loaded.
 
 The global shortcut and overlay require the VoiceLens GNOME extension. Enable it and log out and back in after first installation or a helper update if needed. Supported Shell versions are listed in [the extension metadata](gnome-shell-extension/metadata.json); compatibility declarations are not equivalent to tests on every version.
 
@@ -106,7 +107,7 @@ In terminals the helper pastes with Ctrl+Shift+V and never sends Enter. If inser
 
 ## Privacy
 
-Audio stays in an anonymous Linux memory file and is closed on completion, cancellation or failure. VoiceLens keeps no audio or transcript history on disk. Only preferences are saved. Successful transcription replaces the previous result; errors, silence and cancellation preserve it.
+Audio stays in an anonymous Linux memory file and is closed on completion, cancellation or failure. A kept model receives each recording only as a passed memory descriptor and is closed with the app. VoiceLens keeps no audio or transcript history on disk. Only preferences are saved. Successful transcription replaces the previous result; errors, silence and cancellation preserve it.
 
 Copying intentionally sends text to the system clipboard; a separate clipboard manager may retain its own history. Model files remain on disk, and Linux may retain their pages in reclaimable file cache after the worker exits. Transcription may make mistakes: check significant names, numbers and instructions.
 

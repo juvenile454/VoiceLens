@@ -42,7 +42,7 @@ def main():
     icon.savev(str(args.output / 'app-icon.png'), 'png', [], [])
     model_available = mock.patch('voicelens.ui.is_model_available', return_value=True)
     model_available.start()
-    window = VoiceLensWindow(backend_api=FakeBackend(), prefs=Settings(language='de'))
+    window = VoiceLensWindow(backend_api=FakeBackend(), prefs=Settings(language='de', keep_model='timed', keep_minutes=10))
     window._ptt_needs_extension = lambda: False
     window._ptt_osd_hide = lambda: None
     window.show_all()
@@ -75,6 +75,10 @@ def main():
         'Es zeigt, wie ein fertiger Text im Fenster aussieht und bearbeitet werden kann.')
     window.status.set_text(t('status_done'))
     capture(window, args.output / 'result-de.png')
+    window.memory_status.set_text(t('memory_resident_timed', model='Small', minutes=9))
+    window.memory_status.get_style_context().add_class('memory-resident')
+    capture(window, args.output / 'resident-de.png')
+    window.memory_status.get_style_context().remove_class('memory-resident')
     window.text.get_buffer().set_text('')
     window.state = 'idle'
     window.elapsed.set_text('00:00')

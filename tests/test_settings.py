@@ -93,6 +93,29 @@ class SettingsTests(unittest.TestCase):
         self.assertFalse(loaded.append_transcript)
         self.assertFalse(loaded.auto_copy)
 
+    def test_keep_model_policy_roundtrip_and_normalization(self) -> None:
+        from voicelens.settings import keep_policy, normalize_keep_minutes, normalize_keep_mode, settings_path
+        prefs = load_settings()
+        self.assertEqual(prefs.keep_model, "release")
+        self.assertEqual(prefs.keep_minutes, 10)
+        self.assertEqual(keep_policy(prefs), ("release", 0.0))
+        save_settings(Settings(keep_model="timed", keep_minutes=25))
+        loaded = load_settings()
+        self.assertEqual((loaded.keep_model, loaded.keep_minutes), ("timed", 25))
+        self.assertEqual(keep_policy(loaded), ("timed", 1500.0))
+        save_settings(Settings(keep_model="always", keep_minutes=99999))
+        loaded = load_settings()
+        self.assertEqual((loaded.keep_model, loaded.keep_minutes), ("always", 720))
+        self.assertEqual(keep_policy(loaded), ("always", 0.0))
+        path = settings_path()
+        path.write_text('{"model": "small", "keep_model": "forever", "keep_minutes": "5"}')
+        loaded = load_settings()
+        self.assertEqual((loaded.keep_model, loaded.keep_minutes), ("release", 10))
+        self.assertEqual(normalize_keep_mode(None), "release")
+        self.assertEqual(normalize_keep_minutes(0), 1)
+        self.assertEqual(normalize_keep_minutes(True), 10)
+        self.assertEqual(normalize_keep_minutes(2.9), 2)
+
     def test_catalog_includes_classic_sizes_and_ram(self) -> None:
         ids = [spec.id for spec in WHISPER_MODELS]
         self.assertEqual(ids, ["tiny", "base", "small", "medium", "large-v2", "large-v3"])

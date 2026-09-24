@@ -72,7 +72,7 @@ class VoiceVisualizer(Gtk.Image):
         reduced = not self.get_settings().get_property('gtk-enable-animations')
         t = 0 if self.phase == 'idle' or reduced else time.monotonic() - self._started
         e = self.energy if self.phase == 'recording' else 0
-        busy = self.phase in ('stopping', 'transcribing', 'settling')
+        busy = self.phase in ('stopping', 'transcribing', 'loading', 'settling')
         x, y = w / 2, h / 2
         scale = 1.0
         if self.phase == 'settling' and not reduced:

@@ -50,6 +50,7 @@
 .voicelens-window .status-detail { color: #a9bfca; font-size: 12px; }
 .voicelens-window .privacy { color: #a3c5bd; font-size: 11px; }
 .voicelens-window .dim-label, .voicelens-settings .dim-label { color: #9bb2bd; opacity: 1; font-size: 11px; }
+.voicelens-window .memory-resident { color: #86e6d0; }
 .voicelens-window .placeholder { color: #7f98a4; font-size: 14px; }
 
 /* ---- Buttons ----------------------------------------------------------- */
@@ -155,6 +156,15 @@
 }
 .voicelens-settings radio.language-choice:checked { background: #24463e; color: #d9f9f0; border-color: #3f8a76; font-weight: 700; }
 .voicelens-settings radio.language-choice:hover { background: #24343f; }
+.voicelens-settings spinbutton, .voicelens-settings spinbutton entry, .voicelens-settings spinbutton text {
+    background: #1b2731; color: #e6f1f3; border-color: #2c3d48; border-radius: 10px; min-height: 30px;
+}
+.voicelens-settings spinbutton:disabled, .voicelens-settings spinbutton:disabled entry,
+.voicelens-settings spinbutton:disabled text { color: #6c8290; background: #172129; }
+.voicelens-settings spinbutton button { background: transparent; border: none; color: #b7c9d1; padding: 0 8px; }
+.voicelens-settings spinbutton button:hover { background: #24343f; }
+.voicelens-settings spinbutton button:disabled { color: #4f6470; }
+.voicelens-settings popover, .voicelens-settings popover > * { background: #16202a; color: #e6f1f3; }
 .voicelens-settings switch { background: #2a3a45; border: 1px solid #35474f; border-radius: 999px; color: #e6f1f3; }
 .voicelens-settings switch:checked { background: #5cc6ad; border-color: #5cc6ad; }
 .voicelens-settings switch slider { background: #dce8ec; border: none; border-radius: 999px; min-width: 22px; min-height: 22px; }

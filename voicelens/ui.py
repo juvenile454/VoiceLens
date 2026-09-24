@@ -15,16 +15,20 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk, Gio, GLib, Gtk, Pango
 
-from .controller import Controller
+from .controller import KEEP_ALWAYS, KEEP_RELEASE, KEEP_TIMED, Controller
 from .hotkey import HOLD_SECONDS, PushToTalk
 from .visualizer import VoiceVisualizer
 from .i18n import set_language, t
 from .settings import (
     DEFAULT_MODEL,
+    MAX_KEEP_MINUTES,
+    MIN_KEEP_MINUTES,
     WHISPER_MODELS,
     get_model_spec,
     is_model_available,
+    keep_policy,
     load_settings,
+    normalize_keep_minutes,
     save_settings,
     data_dir,
 )
@@ -37,6 +41,7 @@ _RECORD_KEYS = {
     'recording': 'stop',
     'stopping': 'stopping',
     'transcribing': 'cancel',
+    'loading': 'cancel',
     'closing': 'closing',
     'settling': 'cancel',
 }
@@ -59,8 +64,9 @@ _MODIFIER_KEYS = _CONTROL_KEYS | {
     Gdk.KEY_ISO_Level5_Shift,
 }
 _TONES = ('tone-ready', 'tone-busy', 'tone-recording', 'tone-warn')
-_BUSY_STATES = frozenset({'starting', 'stopping', 'transcribing', 'settling', 'closing'})
-_ACTIVE_STATES = frozenset({'starting', 'recording', 'stopping', 'transcribing', 'settling'})
+_BUSY_STATES = frozenset({'starting', 'stopping', 'transcribing', 'loading', 'settling', 'closing'})
+_ACTIVE_STATES = frozenset({'starting', 'recording', 'stopping', 'transcribing', 'loading', 'settling'})
+_MEMORY_REFRESH_SECONDS = 1.0
 _COPY_FEEDBACK_MS = 1600
 _TIMER_WARN_SECONDS = 60
 
@@ -205,7 +211,7 @@ class SettingsDialog(Gtk.Dialog):
         scroll = Gtk.ScrolledWindow()
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.set_shadow_type(Gtk.ShadowType.NONE)
-        scroll.set_min_content_height(360)
+        scroll.set_min_content_height(300)
         scroll.get_style_context().add_class('model-scroller')
         self.model_list = Gtk.ListBox()
         self.model_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
@@ -220,6 +226,38 @@ class SettingsDialog(Gtk.Dialog):
         self.note.set_max_width_chars(52)
         self.note.get_style_context().add_class('dim-label')
         models.pack_start(self.note, False, False, 0)
+
+        self.keep_heading = self._heading(top=8)
+        models.pack_start(self.keep_heading, False, False, 0)
+        keep_modes = Gtk.Box(spacing=8)
+        keep_modes.get_style_context().add_class('linked')
+        self.keep_release = Gtk.RadioButton.new_with_label(None, '')
+        self.keep_timed = Gtk.RadioButton.new_with_label_from_widget(self.keep_release, '')
+        self.keep_always = Gtk.RadioButton.new_with_label_from_widget(self.keep_release, '')
+        for radio, mode in ((self.keep_release, KEEP_RELEASE), (self.keep_timed, KEEP_TIMED),
+                            (self.keep_always, KEEP_ALWAYS)):
+            radio.set_mode(False)
+            radio.get_style_context().add_class('language-choice')
+            radio.connect('toggled', self._keep_mode_toggled, mode)
+            keep_modes.pack_start(radio, True, True, 0)
+        models.pack_start(keep_modes, False, False, 0)
+        minutes_row = Gtk.Box(spacing=10)
+        self.keep_minutes = Gtk.SpinButton.new_with_range(MIN_KEEP_MINUTES, MAX_KEEP_MINUTES, 1)
+        self.keep_minutes.set_numeric(True)
+        self.keep_minutes.set_increments(1, 10)
+        self.keep_minutes.set_valign(Gtk.Align.CENTER)
+        self.keep_minutes.connect('value-changed', self._keep_minutes_changed)
+        self.keep_minutes_label = Gtk.Label(xalign=0)
+        self.keep_minutes_label.get_style_context().add_class('row-title')
+        minutes_row.pack_start(self.keep_minutes, False, False, 0)
+        minutes_row.pack_start(self.keep_minutes_label, True, True, 0)
+        models.pack_start(minutes_row, False, False, 0)
+        self.keep_hint = Gtk.Label(xalign=0)
+        self.keep_hint.set_line_wrap(True)
+        self.keep_hint.set_line_wrap_mode(Pango.WrapMode.WORD_CHAR)
+        self.keep_hint.set_max_width_chars(52)
+        self.keep_hint.get_style_context().add_class('dim-label')
+        models.pack_start(self.keep_hint, False, False, 0)
 
         actions = Gtk.Box(spacing=8)
         self.setup_help = Gtk.Button()
@@ -295,6 +333,12 @@ class SettingsDialog(Gtk.Dialog):
         self.auto_copy_hint.set_text(t('auto_copy_hint'))
         self.model_heading.set_text(t('model_heading'))
         self.note.set_text(t('offline_note'))
+        self.keep_heading.set_text(t('keep_heading'))
+        self.keep_release.set_label(t('keep_release_label'))
+        self.keep_timed.set_label(t('keep_timed_label'))
+        self.keep_always.set_label(t('keep_always_label'))
+        self.keep_minutes_label.set_text(t('keep_minutes_label'))
+        self.keep_hint.set_text(t('keep_hint'))
         self.setup_help.set_label(t('setup_help_button'))
         self.open_folder.set_label(t('open_models_folder'))
         self.open_folder.set_tooltip_text(t('open_models_folder_tooltip'))
@@ -312,6 +356,10 @@ class SettingsDialog(Gtk.Dialog):
         self.ptt_check.set_active(bool(prefs.push_to_talk))
         self.append_switch.set_active(bool(prefs.append_transcript))
         self.auto_copy_switch.set_active(bool(prefs.auto_copy))
+        mode, _seconds = keep_policy(prefs)
+        {KEEP_RELEASE: self.keep_release, KEEP_TIMED: self.keep_timed, KEEP_ALWAYS: self.keep_always}[mode].set_active(True)
+        self.keep_minutes.set_value(normalize_keep_minutes(prefs.keep_minutes))
+        self.keep_minutes.set_sensitive(mode == KEEP_TIMED)
         for child in list(self.model_list.get_children()):
             self.model_list.remove(child)
         selected = None
@@ -388,6 +436,17 @@ class SettingsDialog(Gtk.Dialog):
             return
         self.app_window.set_auto_copy(switch.get_active())
 
+    def _keep_mode_toggled(self, button, mode):
+        if self._filling or not button.get_active():
+            return
+        self.keep_minutes.set_sensitive(mode == KEEP_TIMED)
+        self.app_window.set_keep_model(mode)
+
+    def _keep_minutes_changed(self, spin, *_):
+        if self._filling:
+            return
+        self.app_window.set_keep_minutes(spin.get_value_as_int())
+
     def _model_selected(self, _list, row):
         if self._filling or row is None:
             return
@@ -432,8 +491,14 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         self._delivery_timer = None
         self._delivery_call = None
         self._copy_feedback = None
+        self._status_transcribing = ''
+        self._memory_after_outcome = ''
+        self._loading_from = None
+        self._memory_refreshed = 0.0
+        self._preload_pending = True
         self.prefs = prefs if prefs is not None else load_settings()
         set_language(self.prefs.language)
+        self.controller.set_keep_policy(*keep_policy(self.prefs))
         self.set_default_size(680, 720)
         self.set_size_request(560, 620)
         self.get_settings().set_property('gtk-application-prefer-dark-theme', True)
@@ -633,7 +698,12 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         self.menu_setup_help.connect('clicked', self._open_setup_help)
         self.menu_shortcuts = Gtk.ModelButton()
         self.menu_shortcuts.connect('clicked', self._open_shortcuts)
-        for item in (self.menu_settings, self.menu_setup_help, self.menu_shortcuts):
+        self.menu_preload = Gtk.ModelButton()
+        self.menu_preload.connect('clicked', self._preload_model)
+        self.menu_release = Gtk.ModelButton()
+        self.menu_release.connect('clicked', self._release_model)
+        for item in (self.menu_settings, self.menu_setup_help, self.menu_shortcuts,
+                     Gtk.Separator(), self.menu_preload, self.menu_release):
             box.pack_start(item, False, False, 0)
         box.show_all()
         popover.add(box)
@@ -690,6 +760,8 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         self.menu_settings.set_property('text', t('menu_settings'))
         self.menu_setup_help.set_property('text', t('menu_setup_help'))
         self.menu_shortcuts.set_property('text', t('menu_shortcuts'))
+        self.menu_preload.set_property('text', t('menu_preload'))
+        self.menu_release.set_property('text', t('menu_release'))
         self._update_settings_button()
         if self.state == 'idle' and not self.devices_loading:
             if self.microphones:
@@ -698,9 +770,9 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
                 self.status.set_text(t('status_no_mic'))
             else:
                 self.status.set_text(t('status_discovering'))
-            self.memory_status.set_text(t('memory_idle'))
         elif self.devices_loading:
             self.status.set_text(t('status_discovering'))
+        self._update_memory_status(force=True)
         self._controls()
         if self.settings_dialog is not None:
             self.settings_dialog.refresh_strings()
@@ -721,6 +793,10 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         self.prefs.model = spec.id
         save_settings(self.prefs)
         self._update_settings_button()
+        resident = self.controller.resident_model
+        if resident is not None and resident != spec.id:
+            self.controller.release_model('replaced')
+            self._preload_pending = True
         if self.state == 'idle' and not self.devices_loading:
             if not is_model_available(spec.id):
                 self.status.set_text(t('model_not_local'))
@@ -744,6 +820,87 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
     def set_auto_copy(self, enabled):
         self.prefs.auto_copy = bool(enabled)
         save_settings(self.prefs)
+
+    def set_keep_model(self, mode):
+        """Release now / keep for the chosen minutes / keep loaded (loads at start-up)."""
+        self.prefs.keep_model = mode if mode in (KEEP_RELEASE, KEEP_TIMED, KEEP_ALWAYS) else KEEP_RELEASE
+        save_settings(self.prefs)
+        self.controller.set_keep_policy(*keep_policy(self.prefs))
+        self._preload_pending = self.prefs.keep_model == KEEP_ALWAYS
+        self._update_memory_status(force=True)
+        self._controls()
+
+    def set_keep_minutes(self, minutes):
+        self.prefs.keep_minutes = normalize_keep_minutes(minutes)
+        save_settings(self.prefs)
+        self.controller.set_keep_policy(*keep_policy(self.prefs))
+        self._update_memory_status(force=True)
+
+    def _preload_model(self, *_):
+        """Load the model ahead of the first take (menu, or automatically for “keep loaded”)."""
+        self._preload_pending = False
+        if self.state != 'idle' or self.controller.busy or self.closing or self.devices_loading:
+            return False
+        if self.setup_error or not is_model_available(self.prefs.model) or self.prefs.keep_model == KEEP_RELEASE:
+            return False
+        if self.controller.resident_model == self.prefs.model:
+            return False
+        self._dismiss_settings()
+        self.ptt_inject = False
+        self.state = 'loading'
+        self._loading_from = 'idle'
+        self.pending_outcome = None
+        if not self.controller.preload(self.prefs.model, self.prefs.language):
+            self.state = 'idle'
+            self._loading_from = None
+            self._controls()
+            return False
+        self.status.set_text(t('status_loading_model', model=t(get_model_spec(self.prefs.model).name_key)))
+        self._update_memory_status(force=True)
+        self._controls()
+        return True
+
+    def _release_model(self, *_):
+        if self.state != 'idle' or self.controller.busy or self.closing:
+            return False
+        self._preload_pending = False
+        released = self.controller.release_model('manual')
+        self._update_memory_status(force=True)
+        self._controls()
+        return released
+
+    def _update_memory_status(self, force=False):
+        """Footer line: what the worker holds right now; refreshed about once a second."""
+        now = time.monotonic()
+        if not force and now - self._memory_refreshed < _MEMORY_REFRESH_SECONDS:
+            return
+        self._memory_refreshed = now
+        resident = self.controller.resident_model
+        if self.state == 'loading':
+            text = t('memory_loading')
+        elif resident is not None:
+            name = t(get_model_spec(resident).name_key)
+            release_at = self.controller.release_at
+            if self.controller.keep_mode == KEEP_TIMED and release_at is not None:
+                remaining = max(0.0, release_at - now)
+                if remaining < 60:
+                    text = t('memory_resident_soon', model=name)
+                else:
+                    text = t('memory_resident_timed', model=name, minutes=int(remaining // 60) + (1 if remaining % 60 else 0))
+            else:
+                text = t('memory_resident_always', model=name)
+        elif self.state in ('transcribing', 'stopping'):
+            text = t('memory_working')
+        elif self.state in ('idle', 'settling') and self.pending_outcome is None and self._memory_after_outcome:
+            text = self._memory_after_outcome
+        else:
+            text = t('memory_idle')
+        self.memory_status.set_text(text)
+        style = self.memory_status.get_style_context()
+        if resident is not None and self.state != 'loading':
+            style.add_class('memory-resident')
+        else:
+            style.remove_class('memory-resident')
 
     def _idle_status(self):
         if self.setup_error:
@@ -820,8 +977,13 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         self.refresh.set_sensitive(idle and not self.devices_loading)
         self.settings_button.set_sensitive(idle and not self.devices_loading)
         self.menu_settings.set_sensitive(idle and not self.devices_loading)
+        resident = self.controller.resident_model
+        self.menu_preload.set_sensitive(
+            idle and not self.devices_loading and not self.setup_error and self.prefs.keep_model != KEEP_RELEASE
+            and is_model_available(self.prefs.model) and resident != self.prefs.model)
+        self.menu_release.set_sensitive(idle and resident is not None)
         self.record.set_sensitive(not self.closing and (
-            self.state in ('recording', 'transcribing', 'settling') or (
+            self.state in ('recording', 'transcribing', 'loading', 'settling') or (
                 idle and not self.devices_loading and bool(self.microphones)
                 and not self.setup_error and is_model_available(self.prefs.model)
             )
@@ -836,7 +998,7 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         style.remove_class('suggested-action')
         style.remove_class('destructive-action')
         style.add_class('destructive-action' if self.state == 'recording' else 'suggested-action')
-        if self.state in ('starting', 'stopping', 'transcribing', 'closing'):
+        if self.state in ('starting', 'stopping', 'transcribing', 'loading', 'closing'):
             self.spinner.start()
         else:
             self.spinner.stop()
@@ -900,7 +1062,7 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         elif self.state == 'settling':
             self._cancel_delivery()
             self.status.set_text(t('status_cancelled'))
-        elif self.state == 'transcribing':
+        elif self.state in ('transcribing', 'loading'):
             self._ptt_osd_hide()
             self.controller.cancel()
             self.ptt_inject = False
@@ -967,6 +1129,7 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
     def _tick(self):
         if self.closing:
             if not self.controller.busy and not (self._discovery_thread and self._discovery_thread.is_alive()):
+                self.controller.release_model('closing')
                 self.timer_id = None
                 self.destroy()
                 return GLib.SOURCE_REMOVE
@@ -1012,24 +1175,39 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
                     style.remove_class('timer-warn')
             elif kind == 'transcribing':
                 self.state = 'transcribing'
-                prefix = t('status_limit') if data['automatic'] else ''
-                self.status.set_text(prefix + t(
+                self._status_transcribing = (t('status_limit') if data['automatic'] else '') + t(
                     'status_transcribing',
                     language=t('language_' + self.prefs.language),
-                ))
-                self.memory_status.set_text(t('memory_working'))
+                )
+                self.status.set_text(self._status_transcribing)
                 if self.ptt_inject:
                     self._ptt_osd('notify_transcribing')
+            elif kind == 'loading':
+                if self.state == 'transcribing':
+                    self._loading_from = 'transcribing'
+                    self.state = 'loading'
+                    self.status.set_text(t('status_loading_model', model=t(get_model_spec(data['model']).name_key)))
+            elif kind == 'model_loaded':
+                if self.state == 'loading' and self._loading_from == 'transcribing':
+                    self.state = 'transcribing'
+                    self.status.set_text(self._status_transcribing)
+                self._loading_from = None
+            elif kind == 'model_released':
+                self._memory_after_outcome = t('memory_unloaded')
+                if self.state == 'idle' and data.get('reason') in ('idle', 'manual', 'policy'):
+                    self.status.set_text(t('status_model_released'))
             else:
                 self.pending_outcome = (kind, data)
+            self._update_memory_status(force=True)
             self._controls()
         # Re-enable only after the lifecycle thread has also completed cleanup.
         if self.pending_outcome and not self.controller.busy:
             kind, data = self.pending_outcome
             self.pending_outcome = None
-            if kind == 'result' and self.controller.cancel_requested.is_set():
+            if kind in ('result', 'preloaded') and self.controller.cancel_requested.is_set():
                 kind, data = 'cancelled', None
-            self.memory_status.set_text(t('memory_unloaded'))
+            self._loading_from = None
+            self._memory_after_outcome = t('memory_unloaded')
             if kind == 'result' and data['result']['text'].strip():
                 self._begin_delivery(data['result']['text'].strip())
             else:
@@ -1037,14 +1215,24 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
                 self.ptt_inject = False
                 self._ptt_osd_hide()
                 self._ptt_target = None
-                if kind == 'result':
+                if kind == 'preloaded':
+                    self.status.set_text(t('status_model_loaded', model=t(get_model_spec(data['model']).name_key)))
+                elif kind == 'result':
                     self.status.set_text(t('status_no_speech'))
                 elif kind == 'cancelled':
                     self.status.set_text(t('status_cancelled'))
                 else:
                     self.status.set_text(t('status_error', error=data))
-                    self.memory_status.set_text(t('memory_none'))
+                    self._memory_after_outcome = t('memory_none')
+            self._update_memory_status(force=True)
             self._controls()
+        elif (self._preload_pending and self.state == 'idle' and self.devices_loaded
+              and not self.devices_loading and self.settings_dialog is None):
+            if self.prefs.keep_model == KEEP_ALWAYS and not self.controller.busy:
+                self._preload_model()
+            else:
+                self._preload_pending = False
+        self._update_memory_status()
         if time.monotonic() - self._last_discovery >= 5:
             self._refresh(automatic=True)
         return GLib.SOURCE_CONTINUE
@@ -1111,6 +1299,7 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         self._ptt_target = None
         self._ptt_osd_hide()
         self.state = 'idle'
+        self._update_memory_status(force=True)
         self._controls()
         return GLib.SOURCE_REMOVE
 
@@ -1280,7 +1469,7 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         self.ptt_inject = False
         self._ptt_target = None
         self._ptt_osd_hide()
-        if self.state in ('starting', 'recording', 'stopping', 'transcribing'):
+        if self.state in ('starting', 'recording', 'stopping', 'transcribing', 'loading'):
             self.controller.cancel()
             self.state = 'stopping'
             self.status.set_text(t('status_canceling'))
@@ -1358,6 +1547,7 @@ class VoiceLensWindow(Gtk.ApplicationWindow):
         self._end_copy_feedback()
         Gtk.StyleContext.remove_provider_for_screen(self.get_screen(), self._css)
         self.controller.cancel()
+        self.controller.release_model('closing')
         self._clear_ptt_timer()
         self._dismiss_settings()
         if self.timer_id is not None:

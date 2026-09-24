@@ -9,6 +9,11 @@ from pathlib import Path
 from .i18n import DEFAULT_LANGUAGE, normalize_language
 
 DEFAULT_MODEL = "small"
+KEEP_MODES = ("release", "timed", "always")
+DEFAULT_KEEP_MODE = "release"
+DEFAULT_KEEP_MINUTES = 10
+MIN_KEEP_MINUTES = 1
+MAX_KEEP_MINUTES = 720
 REQUIRED_MODEL_FILES = ("model.bin", "config.json", "tokenizer.json")
 CACHE_ENV_KEYS = ("HF_HUB_CACHE", "HUGGINGFACE_HUB_CACHE", "HF_HOME", "XDG_CACHE_HOME", "XDG_DATA_HOME")
 
@@ -40,6 +45,24 @@ class Settings:
     push_to_talk: bool = True
     append_transcript: bool = False
     auto_copy: bool = False
+    keep_model: str = DEFAULT_KEEP_MODE
+    keep_minutes: int = DEFAULT_KEEP_MINUTES
+
+
+def normalize_keep_mode(value: object) -> str:
+    return value if value in KEEP_MODES else DEFAULT_KEEP_MODE
+
+
+def normalize_keep_minutes(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return DEFAULT_KEEP_MINUTES
+    return max(MIN_KEEP_MINUTES, min(MAX_KEEP_MINUTES, int(value)))
+
+
+def keep_policy(prefs: Settings) -> tuple[str, float]:
+    """(mode, idle seconds) for the controller; seconds only matter for the timed mode."""
+    mode = normalize_keep_mode(prefs.keep_model)
+    return mode, float(normalize_keep_minutes(prefs.keep_minutes) * 60) if mode == "timed" else 0.0
 
 
 def normalize_model(value: str | None) -> str:
@@ -184,6 +207,8 @@ def load_settings() -> Settings:
         push_to_talk=flag("push_to_talk", True),
         append_transcript=flag("append_transcript", False),
         auto_copy=flag("auto_copy", False),
+        keep_model=normalize_keep_mode(payload.get("keep_model")),
+        keep_minutes=normalize_keep_minutes(payload.get("keep_minutes")),
     )
 
 
@@ -197,6 +222,8 @@ def save_settings(prefs: Settings) -> None:
             "push_to_talk": bool(prefs.push_to_talk),
             "append_transcript": bool(prefs.append_transcript),
             "auto_copy": bool(prefs.auto_copy),
+            "keep_model": normalize_keep_mode(prefs.keep_model),
+            "keep_minutes": normalize_keep_minutes(prefs.keep_minutes),
         },
         indent=2,
     ) + "\n"

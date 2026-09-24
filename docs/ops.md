@@ -32,7 +32,9 @@ Umgebungsvariablen in einem Terminal gelten nicht automatisch für das Anwendung
 
 Katalog und RAM-Hinweise: `settings.WHISPER_MODELS`. Vollständigkeit: `settings.missing_model_files`. Gesucht werden ein zugeordneter expliziter Ordner, Benutzer-Modelle und Hugging-Face-Snapshots; es wird nichts geholt. Modellquellen und Formate: [models.md](models.md). Vorauswahl ohne gespeichertes Modell: `settings.initial_model`; gespeicherte Entscheidungen bleiben erhalten.
 
-Persistenz: `~/.config/voicelens/settings.json` (`language`, `model`, `push_to_talk`, `append_transcript`, `auto_copy`). Fehlende oder ungültige Schlüssel fallen auf die Standardwerte zurück.
+Persistenz: `~/.config/voicelens/settings.json` (`language`, `model`, `push_to_talk`, `append_transcript`, `auto_copy`, `keep_model` = `release`|`timed`|`always`, `keep_minutes` 1–720). Fehlende oder ungültige Schlüssel fallen auf die Standardwerte zurück (`release`, 10 Minuten).
+
+Modell im Speicher: `release` startet pro Aufnahme einen Worker und holt ihn ab. `timed` hält den Worker `keep_minutes` nach der letzten Nutzung (Fußzeile zeigt die Restzeit), `always` hält ihn bis Modell-/Policy-Wechsel oder Schließen und lädt ihn schon beim App-Start. Ladezeitlimit: `backend.MODEL_LOAD_TIMEOUT`. Menü: „Modell jetzt laden“ / „Modell freigeben“. Ein Abbruch während der Transkription beendet den residenten Worker; die nächste Aufnahme lädt neu.
 
 `install.py --check` verändert keine Einstellungen. Die Installation speichert die vorhandene/vorausgewählte Modellwahl nur bei lokal verfügbarem Modell. Mikrofone werden frisch erkannt und nicht als veraltende Geräteliste gespeichert.
 
