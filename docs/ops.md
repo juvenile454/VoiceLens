@@ -1,62 +1,62 @@
-# Betrieb
+# Operations
 
 ## Start
 
 ```sh
-./run.sh                          # GUI, System-Python
+./run.sh                          # GUI, system Python
 ./run.sh --list-microphones       # JSON
-./run.sh --check                 # JSON, nur lokale Einrichtung prüfen
+./run.sh --check                 # JSON, check local setup only
 ./run.sh --transcribe FILE [--language en|de] [--model small]
-/usr/bin/python3 install.py       # User-Launcher + PTT-Erweiterung
-/usr/bin/python3 install.py --check --language de  # nur Diagnose, keine Installation
+/usr/bin/python3 install.py       # user launchers + PTT extension
+/usr/bin/python3 install.py --check --language de  # diagnostics only, no installation
 ```
 
-`run.sh` wechselt in den Projektordner und `exec`’t `/usr/bin/python3 -m voicelens`. Das Projekt muss an seinem Pfad bleiben, weil die `.desktop`-Exec darauf zeigt.
+`run.sh` changes into the project folder and `exec`s `/usr/bin/python3 -m voicelens`. The project must stay at its path because the `.desktop` Exec points to it.
 
-## Umgebungsvariablen
+## Environment variables
 
-| Variable | Zweck |
+| Variable | Purpose |
 |---|---|
-| `VOICELENS_STT_PYTHON` | Absoluter Interpreter mit faster-whisper. Überschreibt die automatische Auswahl. |
-| `VOICELENS_MODEL_PATH` | Vorhandener vollständiger CTranslate2-Modellordner; Vorrang für die zugeordnete Modellgröße. |
-| `VOICELENS_MODEL_ID` | Modellgröße für einen beliebig benannten eigenen Modellordner. |
-| `HF_HUB_CACHE`, `HUGGINGFACE_HUB_CACHE`, `HF_HOME`, `XDG_CACHE_HOME` | Lokaler Hugging-Face-Cache, Priorität in `settings.cache_dir`. |
-| `XDG_DATA_HOME` | Benutzer-Modelle/-Umgebung und Launcher; Standard laut XDG. |
-| `VOICELENS_MODEL` / `VOICELENS_LANGUAGE` | Setzt der Parent für den Worker; nicht als User-API dokumentieren. |
+| `VOICELENS_STT_PYTHON` | Absolute interpreter with faster-whisper. Overrides the automatic selection. |
+| `VOICELENS_MODEL_PATH` | Existing complete CTranslate2 model folder; takes precedence for the assigned model size. |
+| `VOICELENS_MODEL_ID` | Model size for a custom model folder with an arbitrary name. |
+| `HF_HUB_CACHE`, `HUGGINGFACE_HUB_CACHE`, `HF_HOME`, `XDG_CACHE_HOME` | Local Hugging Face cache, priority in `settings.cache_dir`. |
+| `XDG_DATA_HOME` | User models/environment and launchers; default per XDG. |
+| `VOICELENS_MODEL` / `VOICELENS_LANGUAGE` | Set by the parent for the worker; do not document as user API. |
 
-Automatische Interpreter-Reihenfolge: Projekt-`.venv`, Benutzer-VoiceLens-Venv, System-Python (`backend.stt_python_candidates`). Umgebungen anderer Anwendungen werden nicht durchsucht. Es wird der erste ausführbare Pfad gewählt. Eine kaputte frühere Umgebung wird als Fehler gemeldet; mit `VOICELENS_STT_PYTHON` lässt sich eine funktionierende ausdrücklich auswählen. Pakete nur in eine eigene VoiceLens-Venv installieren. Die Einrichtungsprüfung importiert STT nur im bewachten Worker, prüft CPU-INT8-Unterstützung, beendet ihn und holt ihn ab. Sie lädt keine Gewichte und startet keine Aufnahme.
+Automatic interpreter order: project `.venv`, user VoiceLens venv, system Python (`backend.stt_python_candidates`). Environments of other applications are not searched. The first executable path is chosen. A broken earlier environment is reported as an error; `VOICELENS_STT_PYTHON` can be used to explicitly select a working one. Install packages only into a dedicated VoiceLens venv. The setup check imports STT only in the guarded worker, checks CPU INT8 support, ends the worker and reaps it. It loads no weights and starts no recording.
 
-Umgebungsvariablen in einem Terminal gelten nicht automatisch für das Anwendungsmenü. Für Launcher möglichst die automatisch erkannten VoiceLens-Verzeichnisse verwenden oder die Variablen bereits in der Desktop-Sitzung setzen.
+Environment variables in a terminal do not automatically apply to the application menu. For launchers, preferably use the automatically detected VoiceLens directories or set the variables in the desktop session already.
 
-## Modelle
+## Models
 
-Katalog und RAM-Hinweise: `settings.WHISPER_MODELS`. Vollständigkeit: `settings.missing_model_files`. Gesucht werden ein zugeordneter expliziter Ordner, Benutzer-Modelle und Hugging-Face-Snapshots; es wird nichts geholt. Modellquellen und Formate: [models.md](models.md). Vorauswahl ohne gespeichertes Modell: `settings.initial_model`; gespeicherte Entscheidungen bleiben erhalten.
+Catalog and RAM hints: `settings.WHISPER_MODELS`. Completeness: `settings.missing_model_files`. Searched are an assigned explicit folder, user models and Hugging Face snapshots; nothing is fetched. Model sources and formats: [models.md](models.md). Preselection without a saved model: `settings.initial_model`; saved decisions are kept.
 
-Persistenz: `~/.config/voicelens/settings.json` (`language`, `model`, `push_to_talk`, `append_transcript`, `auto_copy`, `keep_model` = `release`|`timed`|`always`, `keep_minutes` 1–720). Fehlende oder ungültige Schlüssel fallen auf die Standardwerte zurück (`release`, 10 Minuten).
+Persistence: `~/.config/voicelens/settings.json` (`language`, `model`, `push_to_talk`, `append_transcript`, `auto_copy`, `keep_model` = `release`|`timed`|`always`, `keep_minutes` 1–720). Missing or invalid keys fall back to the defaults (`release`, 10 minutes).
 
-Modell im Speicher: `release` startet pro Aufnahme einen Worker und holt ihn ab. `timed` hält den Worker `keep_minutes` nach der letzten Nutzung (Fußzeile zeigt die Restzeit), `always` hält ihn bis Modell-/Policy-Wechsel oder Schließen und lädt ihn schon beim App-Start. Ladezeitlimit: `backend.MODEL_LOAD_TIMEOUT`. Menü: „Modell jetzt laden“ / „Modell freigeben“. Ein Abbruch während der Transkription beendet den residenten Worker; die nächste Aufnahme lädt neu.
+Model in memory: `release` starts a worker per recording and reaps it. `timed` keeps the worker for `keep_minutes` after the last use (the footer shows the remaining time), `always` keeps it until a model/policy change or close and loads it already at app start. Load time limit: `backend.MODEL_LOAD_TIMEOUT`. Menu: "Load model now" / "Release model". Cancelling during transcription ends the resident worker; the next recording loads again.
 
-`install.py --check` verändert keine Einstellungen. Die Installation speichert die vorhandene/vorausgewählte Modellwahl nur bei lokal verfügbarem Modell. Mikrofone werden frisch erkannt und nicht als veraltende Geräteliste gespeichert.
+`install.py --check` changes no settings. The installation saves the existing/preselected model choice only if the model is available locally. Microphones are detected fresh and not stored as an ageing device list.
 
-## Launcher
+## Launchers
 
-`install.py` prüft zuerst GTK/Cairo, Audio-Werkzeuge, STT-Umgebung, Mikrofone und Modelle. Die Ausgabe ist standardmäßig lesbarer Text; `--json` liefert strukturierte Daten. `--check` liefert Exit 0 bei vollständiger Einrichtung, sonst 1. Normale Installation kann trotz fehlendem Mikrofon/Modell Launcher bereitstellen; die Diagnose bleibt im Ergebnis sichtbar.
+`install.py` first checks GTK/Cairo, audio tools, the STT environment, microphones and models. The output is human-readable text by default; `--json` provides structured data. `--check` exits 0 when the setup is complete, otherwise 1. A normal installation can provide launchers despite a missing microphone/model; the diagnostics remain visible in the result.
 
-`install.py` schreibt Benutzer-Launcher, Erweiterung und Einstellungen:
+`install.py` writes user launchers, the extension and settings:
 
 - `~/.local/share/applications/org.voicelens.VoiceLens.desktop`
-- `$(xdg-user-dir DESKTOP)/VoiceLens.desktop` nur für einen vorhandenen, aktivierten Schreibtischordner (`metadata::trusted=true`)
-- GNOME-Erweiterung in einer GNOME-Sitzung nach `~/.local/share/gnome-shell/extensions/<UUID>/`
-- Einstellungen laut `settings.settings_path`
+- `$(xdg-user-dir DESKTOP)/VoiceLens.desktop` only for an existing, enabled desktop folder (`metadata::trusted=true`)
+- GNOME extension in a GNOME session to `~/.local/share/gnome-shell/extensions/<UUID>/`
+- Settings per `settings.settings_path`
 
-Weicht ein vorhandener Launcher ab und zeigt noch auf eine existierende Exec, bricht die Installation ab. Fremde oder alte Entwicklungs-Launcher werden nicht entfernt. Kein Autostart, kein systemd.
+If an existing launcher differs and still points to an existing Exec, the installation aborts. Foreign or old development launchers are not removed. No autostart, no systemd.
 
-## GNOME Push-to-Talk
+## GNOME push-to-talk
 
-UUID und Dateien: `voicelens/shell_ext.py`. Quelle: `gnome-shell-extension/`.
+UUID and files: `voicelens/shell_ext.py`. Source: `gnome-shell-extension/`.
 
-Nach Änderung an `extension.js` / `lens.js` / `stylesheet.css`: `install.py` bzw. `shell_ext.ensure()` beim Start kopiert und versucht disable/enable. Unter GNOME 46 bleibt alter Erweiterungscode oft im Speicher — einmal **ab- und anmelden**. Im VoiceLens-Fenster selbst funktioniert Steuerung halten auch ohne Erweiterung. Das Cursor-Overlay benötigt die neue Erweiterung; solange die alte Version geladen ist, nutzt die App deren bisherige Statusanzeige.
+After changes to `extension.js` / `lens.js` / `stylesheet.css`: `install.py` or `shell_ext.ensure()` at start copies and tries disable/enable. Under GNOME 46, old extension code often stays in memory — **log out and back in** once. In the VoiceLens window itself, holding Control works even without the extension. The cursor overlay needs the new extension; while the old version is loaded, the app uses its previous status display.
 
-IBus-Cursorpositionen und Terminal-Paste benötigen ebenfalls den aktualisierten Helper. Erkennt die App eine Terminalrolle, aber der geladene Helper kennt `PasteWithOptions` noch nicht, bleibt das Ergebnis in der Zwischenablage (manuell Strg+Umschalt+V). Fehlende Cursorinformationen einer Anwendung lassen sich nicht durch das Raten von Positionen ersetzen; dann bleibt die Fensterposition der Rückfall.
+IBus cursor positions and terminal paste also need the updated helper. If the app detects a terminal role but the loaded helper does not yet know `PasteWithOptions`, the result stays in the clipboard (paste manually with Ctrl+Shift+V). Missing cursor information from an application cannot be replaced by guessing positions; the window position then remains the fallback.
 
-Abhängigkeiten: GTK3/PyGObject/Cairo, `ffmpeg`, `pactl`, PipeWire/Pulse-Benutzersitzung, STT-Interpreter mit faster-whisper, lokales Modell. Manuelle Vorbereitung auf einem neuen Rechner steht in [README.md](../README.md). Installer und App laden keine Pakete oder Modelle herunter.
+Dependencies: GTK3/PyGObject/Cairo, `ffmpeg`, `pactl`, PipeWire/Pulse user session, STT interpreter with faster-whisper, local model. Manual preparation on a new machine is described in [README.md](../README.md). Installer and app download no packages or models.

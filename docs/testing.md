@@ -1,6 +1,6 @@
-# Tests
+# Testing
 
-## Isoliert (Testdoubles, Standard)
+## Isolated (test doubles, default)
 
 ```sh
 /usr/bin/python3 -m unittest discover -s tests -p 'test_*.py' -v
@@ -9,56 +9,58 @@ env -u WAYLAND_DISPLAY GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 -m unittest 
 env -u WAYLAND_DISPLAY GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 -m unittest discover -s tests -p test_ui.py -v
 ```
 
-| Datei | Prüft | Echtes I/O |
+| File | Checks | Real I/O |
 |---|---|---|
-| `test_backend.py` | Worker-/ffmpeg-Lifecycle, Cancel, Timeout | nein (Doubles) |
-| `test_controller.py` | Eventvertrag, Text-Erhalt, Halte-Policies (Wiederverwendung, Leerlauf-Freigabe, Modell-/Policy-Wechsel, Vorladen, Abbruch) | nein (`FakeBackend`, `FakeModelSession`) |
-| `test_resident.py` | IPC-Kanal mit Deskriptoren, `worker.serve`-Schleife, `ModelSession` (Wiederverwendung, Abholen, Cancel/Timeout beim Laden und Transkribieren, Worker-Absturz) | echte Kindprozesse als Protokoll-Doubles, kein Modell |
-| `test_lifecycle.py` | Recorder darf Parent nicht überleben; memfd nicht vererbbar | nein |
-| `test_settings.py` | Katalog, Offline-Pfade | nein |
-| `test_setup.py` | Einrichtungsdiagnose, SVG-Loader und defekte Assets, fehlende Komponenten, Installer ohne Schreibtisch, Cache-Umgebung | GTK-Asset-Lader echt; Datei-/API-Doubles, keine Aufnahme |
-| `test_hotkey.py` | Halten/Akkord-State-Machine, Terminalrolle, Paste-Optionen, alte Helper/Timeouts | nein (AT-SPI/D-Bus-Doubles) |
-| `test_shell_ext.py` | Dateien kopieren unter `XDG_DATA_HOME`; gemeinsame App-/Launcher-/D-Bus-Identität | nein (temp dir; aktiviert die Session-Erweiterung nicht) |
-| `test_ui.py` | GTK-Buttons/Signale, Start ohne Icon/CSS, Einrichtungshinweise bei mehreren Fehlern, Anhängen/Auto-Kopieren, Leeren, Escape, Strg+Umschalt+C, Einstellungsschalter, Menüdialoge, Modell-im-Speicher (Einstellungen, Vorladen beim Start, Wiederverwendung, Countdown, Freigabe, Abbruch beim Laden) | xvfb, kein Mikrofon |
-| `test_overlay.py` | GJS/Cairo, native/IBus-Cursor-Geometrie, Label-Fade, Terminal-Paste, Animation/Abbruch, Signal-/Timer-Cleanup | Cairo echt; Shell, IBus, Tastatur, Uhr und D-Bus sind Doubles |
+| `test_backend.py` | Worker/ffmpeg lifecycle, cancel, timeout | no (doubles) |
+| `test_controller.py` | Event contract, text preservation, keep policies (reuse, idle release, model/policy change, preloading, cancel) | no (`FakeBackend`, `FakeModelSession`) |
+| `test_resident.py` | IPC channel with descriptors, `worker.serve` loop, `ModelSession` (reuse, reaping, cancel/timeout while loading and transcribing, worker crash) | real child processes as protocol doubles, no model |
+| `test_lifecycle.py` | Recorder must not outlive its parent; memfd not inheritable | no |
+| `test_settings.py` | Catalog, offline paths | no |
+| `test_setup.py` | Setup diagnostics, SVG loader and broken assets, missing components, installer without a desktop, cache environment | real GTK asset loader; file/API doubles, no recording |
+| `test_hotkey.py` | Hold/chord state machine, terminal role, paste options, old helpers/timeouts | no (AT-SPI/D-Bus doubles) |
+| `test_shell_ext.py` | Copying files under `XDG_DATA_HOME`; shared app/launcher/D-Bus identity | no (temp dir; does not enable the session extension) |
+| `test_ui.py` | GTK buttons/signals, start without icon/CSS, setup hints with multiple errors, append/auto-copy, clear, Escape, Ctrl+Shift+C, settings switches, menu dialogs, model in memory (settings, preloading at start, reuse, countdown, release, cancel while loading) | xvfb, no microphone |
+| `test_overlay.py` | GJS/Cairo, native/IBus cursor geometry, label fade, terminal paste, animation/cancel, signal/timer cleanup | real Cairo; shell, IBus, keyboard, clock and D-Bus are doubles |
 
-Dateiköpfe markieren Doubles ausdrücklich. `discover` sieht nur `test_*.py`.
+File headers mark doubles explicitly. `discover` only sees `test_*.py`.
 
-## Visuelle Vorschau (synthetisch)
+## Visual preview (synthetic)
 
 ```sh
-env -u WAYLAND_DISPLAY GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 tests/preview_ui.py --output verification/ui
-gjs -m tests/preview_overlay.js verification/ui/frames
-ffmpeg -v error -y -framerate 20 -i verification/ui/frames/%03d.png -filter_complex "[0:v]split[a][b];[a]palettegen[p];[b][p]paletteuse" -loop 0 verification/ui/cursor-flow.gif
+env -u WAYLAND_DISPLAY GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 tests/preview_ui.py --output verification/ui-en --language en
+gjs -m tests/preview_overlay.js verification/overlay-en en
+ffmpeg -v error -y -framerate 20 -i verification/overlay-en/%03d.png -filter_complex "[0:v]split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" -loop 0 verification/overlay-en.gif
 ```
 
-Rendert GTK-Ansichten in beiden Sprachen (Leerlauf, Aufnahme, Transkription, Ergebnis, Fußzeile mit geladenem Modell, beide Einstellungsseiten, Einrichtungshilfe, Tastenkürzel) sowie eine Szene mit dem Original-Overlay-Renderer und synthetischen Pegeln. Die Modellverfügbarkeit ist dabei ein Double, damit der Bereit-Zustand sichtbar ist. Startet keine Aufnahme und installiert keine Erweiterung. Das ersetzt keinen Live-Test des GNOME-Overlays in einer fremden Anwendung.
+Renders GTK views in the selected language (`--language en|de`, default `de`) (idle, recording, transcription, result, footer with a loaded model, both settings pages, setup help, keyboard shortcuts) as well as a scene with the original overlay renderer and synthetic levels. Model availability is a double here so that the ready state is visible. Starts no recording and installs no extension. This does not replace a live test of the GNOME overlay in a foreign application.
 
-## Einrichtungsdiagnose (nur lesend)
+Both scripts take `de` (the default) or `en`; `preview_ui.py` writes `<view>-<lang>.png`. The README images in `assets/screenshots/` and `assets/demo/` were produced this way.
+
+## Setup diagnostics (read-only)
 
 ```sh
 /usr/bin/python3 install.py --check --language de
 ./run.sh --check
 ```
 
-Liest echte Geräte-/Modelllisten, lädt das mitgelieferte Icon und Stylesheet zur Prüfung und prüft den vorhandenen Interpreter in einem abgeholten Kindprozess. Keine Aufnahme, keine Gewichte geladen, keine Launcher-Installation. Das ist kein echter Transkriptionstest.
+Reads real device/model lists, loads the bundled icon and stylesheet for checking, and checks the existing interpreter in a reaped child process. No recording, no weights loaded, no launcher installation. This is not a real transcription test.
 
-## Opt-in, echt (nicht discover)
+## Opt-in, real (not discover)
 
-Nur mit expliziten Flags. Nehmen das Mikrofon, wenn `--microphone` gesetzt ist. Keine Audioausgabe an Lautsprecher.
+Only with explicit flags. They use the microphone when `--microphone` is set. No audio output to speakers.
 
 ```sh
 /usr/bin/python3 tests/integration_local.py --speech SPEECH.wav --silence SILENCE.wav --output OUT.json
 /usr/bin/python3 tests/integration_local.py --speech SPEECH.wav --silence SILENCE.wav --microphone --output OUT.json
-# extra Flag Pflicht:
+# extra flag required:
 /usr/bin/python3 tests/integration_ui.py --microphone --output verification/integration
 ```
 
-Messdumps nur in einem ausdrücklich gewählten lokalen Ausgabeordner ablegen, etwa dem ignorierten `verification/`. Nicht versionieren oder als allgemeine Hardwaregarantie darstellen.
+Store measurement dumps only in an explicitly chosen local output folder, such as the ignored `verification/`. Do not version them or present them as a general hardware guarantee.
 
-## Aussagen
+## Claims
 
-- Isolierte Tests nicht als echte Spracherkennung, Mikrofon- oder RAM-Prüfung ausgeben.
-- „Worker entladen“ nur behaupten, wenn die Worker-PID nach Return weg ist (siehe `integration_local.measured_transcription`).
-- GUI-Tests ohne `xvfb-run`/`GDK_BACKEND=x11` überspringen GTK (`test_ui.py`).
-- Keine neuen Tests, die Produktionsdienste, Netz, Credentials oder unbegrenzte Aufnahmen anfassen.
+- Do not present isolated tests as real speech recognition, microphone or RAM checks.
+- Claim "worker unloaded" only if the worker PID is gone after the return (see `integration_local.measured_transcription`).
+- GUI tests without `xvfb-run`/`GDK_BACKEND=x11` skip GTK (`test_ui.py`).
+- No new tests that touch production services, network, credentials or unbounded recordings.
