@@ -11,7 +11,7 @@ No browser, web server, cloud transcription, telemetry, account or subscription.
 
 [Deutsche Kurzanleitung](docs/usage-de.md) · [Models and licenses](docs/models.md) · [Release notes](docs/releases/v0.2.0.md) · [Validation](docs/release.md)
 
-![VoiceLens interface](assets/voicelens-preview.png)
+![VoiceLens interface](assets/screenshots/main.png)
 
 *Interface preview with a simulated microphone; no recording.*
 
