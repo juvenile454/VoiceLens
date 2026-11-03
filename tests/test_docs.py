@@ -13,6 +13,7 @@ SCHEME = re.compile(r'^[a-zA-Z][a-zA-Z0-9+.-]*:')
 FENCE = re.compile(r'^ {0,3}(```|~~~).*?^ {0,3}\1[^\n]*$', re.M | re.S)
 INLINE_CODE = re.compile(r'(`+)(?!`).+?(?<!`)\1(?!`)', re.S)
 MD_LINK = re.compile(r'\]\(\s*(<[^>]*>|[^)\s]*)(?:\s+(?:"[^"]*"|\'[^\']*\'))?\s*\)')
+REF_DEF = re.compile(r'^ {0,3}\[[^\]]+\]:\s*<?([^\s>]+)', re.M)
 HTML_LINK = re.compile(r'<(?:img|a)\b[^>]*?\b(?:src|href)\s*=\s*(?:"([^"]*)"|\'([^\']*)\')', re.I)
 HEADING = re.compile(r'^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*$', re.M)
 
@@ -48,12 +49,14 @@ def links(path):
 
 
 def link_targets(text):
-    """Targets of `](...)` (links, images, linked images) and HTML img/a."""
+    """Targets of `](...)` (links, images, linked images), reference definitions and HTML img/a."""
     found = []
     for m in MD_LINK.finditer(text):
         found.append(m.group(1).strip('<>'))
     for m in HTML_LINK.finditer(text):
         found.append(m.group(1) if m.group(1) is not None else m.group(2))
+    for m in REF_DEF.finditer(text):
+        found.append(m.group(1))
     return [t for t in found if t]
 
 
@@ -81,6 +84,7 @@ class DocsTests(unittest.TestCase):
     def test_link_targets_include_linked_images(self):
         text = '[![Tests](badge.svg)](LICENSE) [x](a.md#b "t") <img src="i.png">'
         self.assertEqual(link_targets(text), ['badge.svg', 'LICENSE', 'a.md#b', 'i.png'])
+        self.assertEqual(link_targets('[0.2.0]: docs/x.md\n'), ['docs/x.md'])
 
     def test_relative_links_resolve(self):
         bad = []

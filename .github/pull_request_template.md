@@ -1,6 +1,6 @@
 ## Problem and behaviour
 
-Describe the problem and the resulting behavior.
+Describe the problem and the resulting behaviour.
 
 ## Validation
 

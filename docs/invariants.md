@@ -6,8 +6,8 @@ Do not break these. Values and lists live in the code named here; do not copy th
 
 - Whisper only in `voicelens/worker.py`, interpreter from `backend._stt_python()`. The GUI process does not import the model (`ui.py`).
 - Default (`keep_model = release`): `backend.transcribe_file` returns only after the worker has exited and been reaped. Only then may the UI show success/`model_unloaded` (`controller.py`).
-- Only with opt-in (`keep_model = timed|always`) does a resident worker (`backend.ModelSession`, `worker.py --serve`) stay loaded between recordings. It is a child of the GUI process with guard/`PDEATHSIG`; audio reaches it only as a passed memfd descriptor (`ipc.py`, `SCM_RIGHTS`). Timeout, policy change, model change, cancel and window close end and reap it (`controller.release_model`). The footer shows while a model is loaded. No model is loaded at start, unless the user chose "Keep loaded".
-- The ffmpeg recorder and the worker are started through `guard.py` (`PDEATHSIG` + parent-PID check before and after `prctl`). Do not kill foreign PIDs; only the own process group (`backend._stop_process`).
+- Only with opt-in (`keep_model = timed|always`) does a resident worker (`backend.ModelSession`, `worker.py --serve`) stay loaded between recordings. It is a child of the GUI process with guard/`PDEATHSIG`; audio reaches it only as a passed memfd descriptor (`ipc.py`, `SCM_RIGHTS`). Timeout, policy change, model change, cancel and window close end and reap it (`controller.release_model`). The footer indicates when a model is loaded. No model is loaded at start, unless the user chose "Keep loaded".
+- The ffmpeg recorder and the worker are started through `guard.py` (`PDEATHSIG` + parent-PID check before and after `prctl`). Do not kill foreign PIDs; only its own process group (`backend._stop_process`).
 - Cancel, error, timeout and window close clean up children and the memfd (`Recorder.close`, `ui.py` `_close`).
 
 ## Audio and privacy
@@ -31,7 +31,7 @@ Do not break these. Values and lists live in the code named here; do not copy th
 ## Push-to-talk
 
 - Control alone only; other keys while holding → `cancel`/`disarm` (`hotkey.py`). Do not swallow shortcuts (extension: `EVENT_PROPAGATE`).
-- Never treat the own window as "foreign" for insertion (`inject.OWN_APP_NAMES`). No global key grabbing in Python.
+- Never treat VoiceLens's own window as "foreign" for insertion (`inject.OWN_APP_NAMES`). No global key grabbing in Python.
 - The overlay stays visible until the text is inserted or cancelled (extension + `ui.py` `_ptt_osd*`).
 
 ## Desktop

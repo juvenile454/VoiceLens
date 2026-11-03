@@ -32,9 +32,9 @@ gjs -m tests/preview_overlay.js verification/overlay-en en
 ffmpeg -v error -y -framerate 20 -i verification/overlay-en/%03d.png -filter_complex "[0:v]split[a][b];[a]palettegen=stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4" -loop 0 verification/overlay-en.gif
 ```
 
-Renders GTK views in the selected language (`--language en|de`, default `de`) (idle, recording, transcription, result, footer with a loaded model, both settings pages, setup help, keyboard shortcuts) as well as a scene with the original overlay renderer and synthetic levels. Model availability is a double here so that the ready state is visible. Starts no recording and installs no extension. This does not replace a live test of the GNOME overlay in a foreign application.
+Renders GTK views (idle, recording, transcription, result, footer with a loaded model, both settings pages, setup help, keyboard shortcuts) in the selected language, as well as a scene with the original overlay renderer and synthetic levels. Model availability is a double here so that the ready state is visible. Starts no recording and installs no extension. This does not replace a live test of the GNOME overlay in a foreign application.
 
-Both scripts take `de` (the default) or `en`; `preview_ui.py` writes `<view>-<lang>.png`. The README images in `assets/screenshots/` and `assets/demo/` were produced this way.
+`preview_ui.py` takes `--language en|de` (default `de`) and writes `<view>-<lang>.png`; `preview_overlay.js` takes a positional `en` or `de` (default `de`). The README images in `assets/screenshots/` and `assets/demo/` were rendered this way and then copied/renamed.
 
 ## Setup diagnostics (read-only)
 

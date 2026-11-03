@@ -2,9 +2,9 @@
 
 | Page | What it covers |
 |---|---|
-| [usage-de.md](usage-de.md) | German quick guide: a native GTK3 dictation app for Linux, hold Control, speak, release, text at the cursor. |
+| [usage-de.md](usage-de.md) | German quick guide: setup, use and privacy in short. |
 | [models.md](models.md) | Local multilingual Whisper models in CTranslate2 format, their sources and distribution. |
-| [architecture.md](architecture.md) | Small native app: speak, transcribe, text; start, modules, recording and STT, push-to-talk. |
+| [architecture.md](architecture.md) | Modules, the recording and transcription path, and push-to-talk. |
 | [invariants.md](invariants.md) | Rules that must not be broken: process and memory, audio and privacy, transcript, offline, push-to-talk, desktop. |
 | [ops.md](ops.md) | Starting the app, environment variables, models, launchers and GNOME push-to-talk. |
 | [testing.md](testing.md) | Isolated tests with doubles, visual preview, read-only setup diagnostics and opt-in real tests. |

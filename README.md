@@ -45,7 +45,7 @@ No browser, web server, cloud transcription, telemetry, account or subscription.
 
 | **Private by design** | **Dictate anywhere** | **Local Whisper models** |
 |---|---|---|
-| Audio lives only in an anonymous memory file. No cloud, no account, no telemetry, no transcript history. | Hold Control alone in any GNOME app. A small lens follows the caret and inserts the text when you release. Shortcuts like Ctrl+C keep working. | faster-whisper with Tiny up to Large v3 from your own disk. English and German for speech and interface. |
+| Audio lives only in an anonymous memory file. No cloud, no account, no telemetry, no transcript history. | With the VoiceLens GNOME extension, hold Control alone in other apps. A small lens appears at the caret and the text is inserted when you release; if insertion is unavailable, it stays on the clipboard. Shortcuts like Ctrl+C keep working. | faster-whisper with Tiny up to Large v3 from your own disk. English and German for speech and interface. |
 
 <details>
 <summary>All features</summary>
@@ -76,13 +76,13 @@ No browser, web server, cloud transcription, telemetry, account or subscription.
   </tr>
 </table>
 
-*Synthetic previews with a simulated microphone.* Also available: [German interface](assets/screenshots/main-de.png).
+*Synthetic previews with a simulated microphone; no recording.* Also available: [German interface](assets/screenshots/main-de.png) · [General settings](assets/screenshots/settings-general.png).
 
 ## Supported platforms
 
 | Platform | Status |
 |---|---|
-| Ubuntu 24.04 · GNOME 46 · Wayland · x86_64 | Tested: manual smoke test and automated suite |
+| Ubuntu 24.04 · GNOME 46 · Wayland · x86_64 | Primary target. 0.1.0 passed a manual smoke test; the automated suite runs on every push; a 0.2.0 smoke test is still pending ([validation](docs/release.md)). |
 | Other GNOME versions, distributions, architectures | Untested; reports welcome |
 | Windows, macOS | Not supported |
 

@@ -6,13 +6,16 @@ All notable changes to VoiceLens are documented here. The format follows [Keep a
 
 ### Added
 
-- Restructured README with an animated demo GIF and screenshots. All images are synthetic previews rendered with test doubles; none contain a recording.
 - GitHub Actions workflow that runs the test suite.
-- English developer documentation and a documentation index at `docs/README.md`.
 - Documentation guard test for relative links, anchors, release status and image size budgets.
 - `--language` option for `tests/preview_ui.py` and an `en` option for `tests/preview_overlay.js`.
 - Social preview image.
 - Contributing guide, security policy, changelog, feature-request form and pull request checklist.
+
+### Changed
+
+- Restructured README with an animated demo GIF and screenshots. All images are synthetic previews rendered with test doubles; none contain a recording.
+- English developer documentation and a documentation index at `docs/README.md`.
 
 ## [0.2.0] - 2026-09-24
 

@@ -6,7 +6,7 @@ Thank you for helping. VoiceLens is an early release; small, focused changes wit
 
 - Privacy first: never include recordings, transcripts or personal paths in issues, pull requests, tests or fixtures.
 - Keep the offline invariants described in [docs/invariants.md](docs/invariants.md).
-- Tests must not use the network, real credentials or a real microphone.
+- Tests found by `unittest discover` must not use the network, real credentials or a real microphone; real-device checks stay opt-in (see [docs/testing.md](docs/testing.md)).
 
 ## Development setup
 

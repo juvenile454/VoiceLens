@@ -14,7 +14,7 @@ VoiceLens 0.2.0 is an early source release for Ubuntu 24.04 / GNOME 46 on x86_64
 | 0.2.0 manual smoke test | Still recommended on a real GNOME 46 desktop. See [v0.2.0 release notes](releases/v0.2.0.md). |
 | Runtime versions | System GTK Python 3.12; speech runtime Python 3.11, faster-whisper 1.2.1, CPU/INT8. Dependency versions are recorded in `requirements-stt-constraints.txt`. |
 
-The manual smoke test preceded the final identifier/runtime-discovery cleanup. It is evidence for the dictation workflow, not a fresh-account installation test of every release dependency. Automated tests use doubles for microphone and transcription operations; they do not establish real speech accuracy, RAM usage or compatibility with every audio device.
+The 0.1.0 manual smoke test preceded the final identifier/runtime-discovery cleanup. It is evidence for the dictation workflow, not a fresh-account installation test of every release dependency. Automated tests use doubles for microphone and transcription operations; they do not establish real speech accuracy, RAM usage or compatibility with every audio device.
 
 ## Distribution
 
