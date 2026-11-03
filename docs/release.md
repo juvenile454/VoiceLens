@@ -1,15 +1,17 @@
 # Release status and validation
 
-VoiceLens 0.1.0 is prepared as an early source release for Ubuntu 24.04 / GNOME 46 on x86_64. Publication is a separate maintainer action; preparing a draft does not change repository visibility.
+VoiceLens 0.2.0 is an early source release for Ubuntu 24.04 / GNOME 46 on x86_64. Publication is a separate maintainer action; preparing a draft does not change repository visibility.
 
 ## Evidence
 
 | Check | Result and scope |
 |---|---|
-| User installation | Launchers, fresh preferences, local Small-model discovery and microphone discovery passed on Ubuntu 24.04 / GNOME 46 / Wayland. Existing system dependencies and model cache were reused. |
-| Manual functional smoke test | In-app dictation and Control-hold dictation were reported working after that installation. No recordings or transcripts are included in the repository. |
-| Original automated suite | 115 tests passed locally and in an independent Debian 13 / Xvfb environment; 14 additional independent audit tests also passed. |
-| Release cleanup | 116 repository tests passed under Xvfb with no failures or skips, including portable-runtime discovery and the cross-component desktop/D-Bus identity check. Release contents and metadata were reviewed separately. |
+| 0.1.0: User installation | Launchers, fresh preferences, local Small-model discovery and microphone discovery passed on Ubuntu 24.04 / GNOME 46 / Wayland. Existing system dependencies and model cache were reused. |
+| 0.1.0: Manual functional smoke test | In-app dictation and Control-hold dictation were reported working after that installation. No recordings or transcripts are included in the repository. |
+| 0.1.0: Original automated suite | 115 tests passed locally and in an independent Debian 13 / Xvfb environment; 14 additional independent audit tests also passed. |
+| 0.1.0: Release cleanup | 116 repository tests passed under Xvfb with no failures or skips, including portable-runtime discovery and the cross-component desktop/D-Bus identity check. Release contents and metadata were reviewed separately. |
+| 0.2.0 automated suite | 153 tests passed under Xvfb with explicit backend doubles. See [v0.2.0 release notes](releases/v0.2.0.md). |
+| 0.2.0 manual smoke test | Still recommended on a real GNOME 46 desktop. See [v0.2.0 release notes](releases/v0.2.0.md). |
 | Runtime versions | System GTK Python 3.12; speech runtime Python 3.11, faster-whisper 1.2.1, CPU/INT8. Dependency versions are recorded in `requirements-stt-constraints.txt`. |
 
 The manual smoke test preceded the final identifier/runtime-discovery cleanup. It is evidence for the dictation workflow, not a fresh-account installation test of every release dependency. Automated tests use doubles for microphone and transcription operations; they do not establish real speech accuracy, RAM usage or compatibility with every audio device.
