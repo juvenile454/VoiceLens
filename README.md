@@ -28,6 +28,7 @@
   <a href="#usage">Usage</a> ·
   <a href="#privacy">Privacy</a> ·
   <a href="#documentation">Docs</a> ·
+  <a href="#contributing">Contributing</a> ·
   <a href="docs/usage-de.md">Deutsch</a>
 </p>
 
@@ -107,7 +108,7 @@ flowchart LR
   A["Hold Control<br/>or press Record"] --> B["ffmpeg records into<br/>an anonymous memory file"]
   B --> C["Separate worker process<br/>faster-whisper + local model"]
   C --> D["Text at the caret<br/>or in the window"]
-  C -. "exits after each take by default" .-> E["Nothing stored on disk"]
+  C -. "exits after each take by default" .-> E["No audio or transcript stored on disk"]
 ```
 
 The [architecture overview](docs/architecture.md) describes the modules, the recording and transcription path, and push-to-talk.
@@ -234,6 +235,10 @@ env -u WAYLAND_DISPLAY GDK_BACKEND=x11 xvfb-run -a /usr/bin/python3 -m unittest 
 ```
 
 Tests use explicit doubles and temporary files; they do not validate real speech recognition or microphone quality. See [testing](docs/testing.md), [architecture](docs/architecture.md), [invariants](docs/invariants.md), and [operations](docs/ops.md). Real audio integration checks are separately opt-in. For an issue, use the repository's [bug-report form](https://github.com/juvenile454/VoiceLens/issues/new?template=bug_report.yml); avoid sharing private transcripts or unredacted diagnostic paths.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and pull requests, [SECURITY.md](SECURITY.md) for private vulnerability reports, and the [bug-report form](https://github.com/juvenile454/VoiceLens/issues/new?template=bug_report.yml) for problems.
 
 ## License
 

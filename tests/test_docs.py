@@ -115,6 +115,11 @@ class DocsTests(unittest.TestCase):
         if social.exists():
             self.assertLess(social.stat().st_size, 1024 * 1024)
 
+    def test_changelog_top_entry_matches_version(self):
+        text = (ROOT / 'CHANGELOG.md').read_text(encoding='utf-8')
+        versions = re.findall(r'^## \[(\d+\.\d+\.\d+)\]', text, re.M)
+        self.assertEqual(versions[0], voicelens.__version__)
+
 
 if __name__ == '__main__':
     unittest.main()
