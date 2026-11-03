@@ -12,7 +12,7 @@ SKIP_DIRS = ('verification', 'docs/superpowers')
 SCHEME = re.compile(r'^[a-zA-Z][a-zA-Z0-9+.-]*:')
 FENCE = re.compile(r'^ {0,3}(```|~~~).*?^ {0,3}\1[^\n]*$', re.M | re.S)
 INLINE_CODE = re.compile(r'(`+)(?!`).+?(?<!`)\1(?!`)', re.S)
-MD_LINK = re.compile(r'!?\[[^\]]*\]\(\s*(<[^>]*>|[^)\s]*)(?:\s+(?:"[^"]*"|\'[^\']*\'))?\s*\)')
+MD_LINK = re.compile(r'\]\(\s*(<[^>]*>|[^)\s]*)(?:\s+(?:"[^"]*"|\'[^\']*\'))?\s*\)')
 HTML_LINK = re.compile(r'<(?:img|a)\b[^>]*?\b(?:src|href)\s*=\s*(?:"([^"]*)"|\'([^\']*)\')', re.I)
 HEADING = re.compile(r'^ {0,3}#{1,6}[ \t]+(.+?)[ \t]*#*[ \t]*$', re.M)
 
@@ -44,7 +44,11 @@ def _prose(path):
 
 def links(path):
     """Link and image targets of a markdown file, excluding code."""
-    text = _prose(path)
+    return link_targets(_prose(path))
+
+
+def link_targets(text):
+    """Targets of `](...)` (links, images, linked images) and HTML img/a."""
     found = []
     for m in MD_LINK.finditer(text):
         found.append(m.group(1).strip('<>'))
@@ -74,6 +78,10 @@ def _local_targets(path):
 
 
 class DocsTests(unittest.TestCase):
+    def test_link_targets_include_linked_images(self):
+        text = '[![Tests](badge.svg)](LICENSE) [x](a.md#b "t") <img src="i.png">'
+        self.assertEqual(link_targets(text), ['badge.svg', 'LICENSE', 'a.md#b', 'i.png'])
+
     def test_relative_links_resolve(self):
         bad = []
         for md in markdown_files():
